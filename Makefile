@@ -1,9 +1,9 @@
-REMOTE_HOST ?= omdev.local
-REMOTE_USER ?= openmower
+REMOTE_HOST ?= moxl.local
+REMOTE_USER ?= moxl
 ROS_LOG_DIR = log/
 SHELL := /bin/bash
 
-all: custom-deps deps build
+all: deps build
 
 .PHONY: deps build
 
@@ -24,21 +24,19 @@ build-release:
 	colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 sim:
-	source .devcontainer/default.env 
-	killall -9 ruby || true
-	ros2 launch launch/sim.launch.py
+	ros2 launch moxl sim.launch.py
 
 run:
-	ros2 launch launch/openmower.launch.py
+	ros2 launch moxl moxl.launch.py
 
-dev:
-	cd .devcontainer && docker-compose up -d
+teleop:
+	ros2 launch moxl teleop.launch.py
 
 run-foxglove:
 	ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 
 rsp:
-	ros2 launch launch/rsp.launch.py
+	ros2 launch moxl rsp.launch.py
 
-remote-devices:
-	bash .devcontainer/scripts/remote_devices.sh $(REMOTE_HOST) $(REMOTE_USER)
+test:
+	cd src/toolpath_planner && python3 -m pytest test/ -v

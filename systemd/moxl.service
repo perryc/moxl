@@ -1,0 +1,57 @@
+# Mo-XL autonomous mower systemd service
+#
+# Install:
+#   sudo cp systemd/moxl.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable moxl
+#
+# Control:
+#   sudo systemctl start moxl
+#   sudo systemctl stop moxl
+#   sudo systemctl status moxl
+#   journalctl -u moxl -f
+#
+# NOTE: Adjust User, WorkingDirectory, and source paths for your Pi setup.
+
+[Unit]
+Description=Mo-XL Autonomous Airstrip Mower
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=moxl
+Group=moxl
+
+# Source ROS2 and workspace setup before launching
+ExecStart=/bin/bash -c '\
+    source /opt/ros/jazzy/setup.bash && \
+    source /home/moxl/ros2_ws/install/setup.bash && \
+    ros2 launch moxl moxl.launch.py'
+
+# Graceful shutdown — let ROS2 cleanup
+ExecStop=/bin/bash -c 'kill -INT $MAINPID'
+TimeoutStopSec=10
+
+# Restart on crash (but not on clean stop)
+Restart=on-failure
+RestartSec=5
+
+# GPIO access
+SupplementaryGroups=gpio i2c spi dialout
+
+# Environment
+Environment=ROS_DOMAIN_ID=0
+Environment=ROS_LOG_DIR=/home/moxl/ros2_logs
+Environment=RCUTILS_LOGGING_BUFFERED_STREAM=1
+
+# Working directory
+WorkingDirectory=/home/moxl/ros2_ws
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=moxl
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+# Joystick teleop configuration for Mo-XL
+# Works with standard USB/Bluetooth gamepads (Xbox, PS4, Logitech F710)
+
+joy_node:
+  ros__parameters:
+    device_id: 0
+    deadzone: 0.1
+    autorepeat_rate: 20.0
+
+teleop_node:
+  ros__parameters:
+    # Axis mappings (adjust for your controller)
+    axis_linear:
+      x: 1    # left stick vertical
+    axis_angular:
+      yaw: 0  # left stick horizontal
+
+    # Scale factors — conservative for a 140 kg machine
+    scale_linear:
+      x: 0.5  # m/s (half speed for teleop safety)
+    scale_angular:
+      yaw: 0.5  # rad/s
+
+    # Turbo mode (hold right trigger for full speed)
+    scale_linear_turbo:
+      x: 1.5  # m/s (full speed)
+    scale_angular_turbo:
+      yaw: 1.0  # rad/s
+
+    enable_button: 4        # L1 — must hold to drive
+    enable_turbo_button: 5  # R1 — hold for turbo
+
+    require_enable_button: true
+
+    # Publish stamped twist for twist_mux compatibility
+    publish_stamped_twist: true
