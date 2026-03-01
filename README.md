@@ -60,6 +60,8 @@ From the engineering drawing (all verified on the physical build):
 
 ![Engineering drawing](photos/WhatsApp%20Image%202024-12-12%20at%2014.26.26_54bdfe53.jpg)
 
+*Yes, that's blood. Jack C bled for this project so we could have accurate measurements. Thank you for your sacrifice, Jack.*
+
 ### GPIO Pin Map
 
 | Pin | Function | Status |
@@ -264,7 +266,26 @@ python3 -m pytest test/ -v
 
 All 31 tests cover coordinate conversion accuracy, strip generation geometry, and polygon loading.
 
-### Launch (Desktop / Simulation)
+### Simulation (Docker — recommended)
+
+The easiest way to see MOXL in action. Runs Gazebo simulation with full Nav2 navigation, toolpath planning, and mission control — no ROS2 install required.
+
+```bash
+# Start the simulation (streams Gazebo GUI to your browser)
+docker compose up sim
+
+# Open Gazebo in your browser
+open http://localhost:12345
+
+# Send a mowing mission (in a second terminal)
+docker compose exec sim bash -c "source /opt/ws/install/setup.bash && \
+  ros2 action send_goal /moxl/mission moxl/action/MowMission \
+  '{airstrip_id: CDS2, runway_id: \"11/29\"}' --feedback"
+```
+
+The mower will autonomously mow all 14 strips of the CDS2 runway at 1.0 m/s in boustrophedon pattern. Zoom out in Gazebo to see the full runway (lighter green strip with white threshold markers at each end).
+
+### Launch (Native ROS2)
 
 ```bash
 # Full system (uses mock hardware interface on desktop)
@@ -299,6 +320,8 @@ This is an active build. The software architecture is complete; hardware integra
 - [x] Mission control (action server state machine, engine/blade stubs)
 - [x] Safety monitor (GPS watchdog + e-stop)
 - [x] Wiring harness diagram (WireViz)
+- [x] Gazebo simulation — full autonomous mowing mission completes (14 strips, 5.4 km)
+- [x] Docker containerization — one command to run the full sim
 - [ ] BTS7960 GPIO driver (compile for Pi, wire motors)
 - [ ] Engine control GPIO (starter relay, choke servo, RPM sensor)
 - [ ] Blade engagement hardware (relay + belt actuator)

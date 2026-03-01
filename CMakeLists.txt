@@ -54,7 +54,8 @@ rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_t
 
 # map_server disabled — replaced by toolpath_planner (Python package)
 # include(cmake/map_server.cmake)
-include(cmake/sim.cmake)
+# sim_node disabled — OpenMowerNext battery/docking simulator, not used by MOXL
+# include(cmake/sim.cmake)
 
 if (BUILD_TESTING)
     find_package(ament_lint_auto REQUIRED)

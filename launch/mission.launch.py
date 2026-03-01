@@ -53,8 +53,8 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
-                        "park_lat": 50.63860,
-                        "park_lon": -105.04030,
+                        "park_lat": 50.637833,
+                        "park_lon": -105.038583,
                     }
                 ],
             ),

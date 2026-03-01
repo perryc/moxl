@@ -18,16 +18,16 @@
         <plugin filename="libgz-sim-imu-system.so" name="gz::sim::systems::Imu">
         </plugin>
 
+        <!-- CDS2 airstrip — Disley, Saskatchewan -->
         <spherical_coordinates>
             <surface_model>EARTH_WGS84</surface_model>
             <world_frame_orientation>ENU</world_frame_orientation>
-            <latitude_deg>-22.9</latitude_deg>
-            <longitude_deg>-43.2</longitude_deg>
-            <elevation>0</elevation>
+            <latitude_deg>50.6345</latitude_deg>
+            <longitude_deg>-105.0318</longitude_deg>
+            <elevation>566</elevation>
             <heading_deg>0</heading_deg>
         </spherical_coordinates>
 
-        <!-- Add sun light with shadows -->
         <light type="directional" name="sun">
             <cast_shadows>true</cast_shadows>
             <pose>0 0 10 0 0 0</pose>
@@ -36,167 +36,113 @@
             <direction>-0.5 0.1 -0.9</direction>
         </light>
 
-        <!-- OpenMower Docking Station -->
-        <model name="docking_station">
+        <!-- Ground plane — flat grass field -->
+        <model name="ground_plane">
             <static>true</static>
-            <pose>1.5 1.5 0 0 0 0</pose>
-
-            <!-- Add pose publisher plugin -->
-            <plugin filename="libgz-sim-pose-publisher-system.so" name="gz::sim::systems::PosePublisher">
-                <publish_link_pose>true</publish_link_pose>
-                <publish_nested_model_pose>true</publish_nested_model_pose>
-                <update_frequency>1</update_frequency>
-                <!-- Charging contact is positioned at [0.32, 0, 0.06] relative to docking station origin -->
-            </plugin>
-
-            <!-- Base Plate -->
-            <link name="base_plate">
+            <link name="link">
+                <collision name="collision">
+                    <geometry>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>1000 1000</size>
+                        </plane>
+                    </geometry>
+                    <surface>
+                        <friction>
+                            <ode>
+                                <mu>1.0</mu>
+                                <mu2>1.0</mu2>
+                            </ode>
+                        </friction>
+                    </surface>
+                </collision>
                 <visual name="visual">
                     <geometry>
-                        <box>
-                            <size>0.8 0.4 0.01</size>
-                        </box>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>1000 1000</size>
+                        </plane>
                     </geometry>
                     <material>
-                        <ambient>0.1 0.1 0.1 1</ambient>
-                        <diffuse>0.1 0.1 0.1 1</diffuse>
+                        <ambient>0.3 0.5 0.2 1</ambient>
+                        <diffuse>0.3 0.5 0.2 1</diffuse>
                         <specular>0.01 0.01 0.01 1</specular>
                     </material>
                 </visual>
-                <collision name="collision">
-                    <geometry>
-                        <box>
-                            <size>0.8 0.4 0.01</size>
-                        </box>
-                    </geometry>
-                </collision>
             </link>
-
-            <!-- Charging Port -->
-            <link name="charging_port">
-                <pose>0.35 0 0.075 0 0 0</pose>
-                <visual name="visual">
-                    <geometry>
-                        <box>
-                            <size>0.1 0.3 0.15</size>
-                        </box>
-                    </geometry>
-                    <material>
-                        <ambient>0.1 0.1 0.1 1</ambient>
-                        <diffuse>0.1 0.1 0.1 1</diffuse>
-                        <specular>0.01 0.01 0.01 1</specular>
-                    </material>
-                </visual>
-                <collision name="collision">
-                    <geometry>
-                        <box>
-                            <size>0.1 0.3 0.15</size>
-                        </box>
-                    </geometry>
-                </collision>
-
-            </link>
-
-            <!-- Charging Contact - Modified for better visibility -->
-            <link name="charging_contact">
-                <pose>0.32 0 0.06 0 0 0</pose>
-                <visual name="visual">
-                    <geometry>
-                        <box>
-                            <size>0.02 0.15 0.03</size>
-                        </box>
-                    </geometry>
-                    <material>
-                        <ambient>1.0 0.0 0.0 1</ambient>
-                        <diffuse>1.0 0.0 0.0 1</diffuse>
-                        <specular>1.0 1.0 1.0 1</specular>
-                        <emissive>0.5 0.0 0.0 1</emissive>
-                    </material>
-                </visual>
-                <collision name="collision">
-                    <geometry>
-                        <box>
-                            <size>0.02 0.15 0.03</size>
-                        </box>
-                    </geometry>
-                </collision>
-            </link>
-
-            <!-- Guide Rail Left -->
-            <link name="guide_rail_left">
-                <pose>0.15 0.2 0.02 0 0 0</pose>
-                <visual name="visual">
-                    <geometry>
-                        <box>
-                            <size>0.4 0.02 0.04</size>
-                        </box>
-                    </geometry>
-                    <material>
-                        <ambient>0.3 0.3 0.3 1</ambient>
-                        <diffuse>0.3 0.3 0.3 1</diffuse>
-                        <specular>0.1 0.1 0.1 1</specular>
-                    </material>
-                </visual>
-                <collision name="collision">
-                    <geometry>
-                        <box>
-                            <size>0.4 0.02 0.04</size>
-                        </box>
-                    </geometry>
-                </collision>
-            </link>
-
-            <!-- Guide Rail Right -->
-            <link name="guide_rail_right">
-                <pose>0.15 -0.2 0.02 0 0 0</pose>
-                <visual name="visual">
-                    <geometry>
-                        <box>
-                            <size>0.4 0.02 0.04</size>
-                        </box>
-                    </geometry>
-                    <material>
-                        <ambient>0.3 0.3 0.3 1</ambient>
-                        <diffuse>0.3 0.3 0.3 1</diffuse>
-                        <specular>0.1 0.1 0.1 1</specular>
-                    </material>
-                </visual>
-                <collision name="collision">
-                    <geometry>
-                        <box>
-                            <size>0.4 0.02 0.04</size>
-                        </box>
-                    </geometry>
-                </collision>
-            </link>
-
-            <!-- Fixed joints for connecting parts -->
-            <joint name="base_to_charging_port" type="fixed">
-                <parent>base_plate</parent>
-                <child>charging_port</child>
-            </joint>
-
-            <joint name="charging_port_to_contact" type="fixed">
-                <parent>charging_port</parent>
-                <child>charging_contact</child>
-            </joint>
-
-            <!-- Joints for guide rails -->
-            <joint name="base_to_guide_rail_left" type="fixed">
-                <parent>base_plate</parent>
-                <child>guide_rail_left</child>
-            </joint>
-
-            <joint name="base_to_guide_rail_right" type="fixed">
-                <parent>base_plate</parent>
-                <child>guide_rail_right</child>
-            </joint>
         </model>
 
-        <include>
-            <uri>
-                https://fuel.gazebosim.org/1.0/hexarotor/models/grasspatch
-            </uri>
-        </include>
+        <!-- CDS2 Runway 11/29 visual reference -->
+        <!-- In ENU frame relative to origin (50.6345, -105.0318): -->
+        <!-- Runway runs N-S from Y≈+180 to Y≈-184, X centered near 0 -->
+        <!-- Width ~24m, Length ~364m -->
+
+        <!-- Runway strip — lighter green to distinguish from grass -->
+        <model name="runway_strip">
+            <static>true</static>
+            <pose>-2 -2 0.005 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>24 370 0.005</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.35 0.55 0.25 1</ambient>
+                        <diffuse>0.35 0.55 0.25 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Threshold 11 (North end) marker — white line -->
+        <model name="threshold_11">
+            <static>true</static>
+            <pose>-2 180 0.01 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>24 2 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Threshold 29 (South end) marker — white line -->
+        <model name="threshold_29">
+            <static>true</static>
+            <pose>-2 -184 0.01 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>24 2 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Center line — dashed effect with single line -->
+        <model name="centerline">
+            <static>true</static>
+            <pose>-2 -2 0.008 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.3 364 0.005</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.8 0.8 0.8 0.5</ambient>
+                        <diffuse>0.8 0.8 0.8 0.5</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
     </world>
 </sdf>

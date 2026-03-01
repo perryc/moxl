@@ -96,6 +96,61 @@ def generate_launch_description():
 
     world_path = os.path.join(get_package_share_directory(package_name), 'worlds', 'empty.sdf')
 
+    # Mission control nodes (with RTK check disabled for sim)
+    airstrip_file = os.path.join(get_package_share_directory(package_name), 'config', 'airstrips', 'CDS2.json')
+
+    mission_nodes = [
+        Node(
+            package='toolpath_planner',
+            executable='toolpath_node',
+            name='toolpath_node',
+            output='screen',
+            parameters=[{
+                'airstrip_file': airstrip_file,
+                'runway': '11/29',
+                'cutting_width': 1.52,
+                'overlap': 0.15,
+                'use_sim_time': True,
+            }],
+        ),
+        Node(
+            package='toolpath_planner',
+            executable='engine_controller_node',
+            name='engine_controller',
+            output='screen',
+            parameters=[{'use_sim_time': True}],
+        ),
+        Node(
+            package='toolpath_planner',
+            executable='blade_controller_node',
+            name='blade_controller',
+            output='screen',
+            parameters=[{'use_sim_time': True}],
+        ),
+        Node(
+            package='toolpath_planner',
+            executable='mission_node',
+            name='mission_node',
+            output='screen',
+            parameters=[{
+                'park_lat': 50.637833,
+                'park_lon': -105.038583,
+                'use_sim_time': True,
+            }],
+        ),
+        Node(
+            package='toolpath_planner',
+            executable='safety_monitor_node',
+            name='safety_monitor',
+            output='screen',
+            parameters=[{
+                'gps_timeout_sec': 2.0,
+                'require_rtk': False,
+                'use_sim_time': True,
+            }],
+        ),
+    ]
+
     return LaunchDescription([
         bridge,
         node_robot_state_publisher,
@@ -124,4 +179,4 @@ def generate_launch_description():
         localization,
         nav2,
         foxglove_bridge,
-    ])
+    ] + mission_nodes)

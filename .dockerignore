@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+build/
+install/
+log/
+photos/
+reference/
+docs/wiring/*.png
+docs/wiring/*.svg
+docs/wiring/*.html
+docs/wiring/*.tsv
+*.pyc
+__pycache__
+.pytest_cache

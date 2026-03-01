@@ -45,8 +45,8 @@ class MissionNode(Node):
     def __init__(self):
         super().__init__("mission_node")
 
-        self.declare_parameter("park_lat", 50.63860)
-        self.declare_parameter("park_lon", -105.04030)
+        self.declare_parameter("park_lat", 50.637833)
+        self.declare_parameter("park_lon", -105.038583)
 
         self.cb_group = ReentrantCallbackGroup()
 

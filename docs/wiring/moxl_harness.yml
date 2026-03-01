@@ -1,9 +1,9 @@
-# MOXL Wiring Harness — WireViz
+# Mo-XL Wiring Harness — WireViz
 # Generate: wireviz moxl_harness.yml
 # Output:   moxl_harness.svg, moxl_harness.png, moxl_harness.bom.tsv
 
 metadata:
-  title: MOXL Wiring Harness
+  title: Mo-XL Wiring Harness
   description: Autonomous airstrip mower — full electrical system
   revision: "0.1"
   author: Perry C

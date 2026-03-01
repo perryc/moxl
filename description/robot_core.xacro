@@ -40,7 +40,7 @@
     </material>
 
     <material name="red">
-        <color rgba="1 0 0 1"/>
+        <color rgba="1 0 0 0.3"/>
     </material>
 
     <material name="green">
@@ -100,7 +100,7 @@
     </link>
 
     <gazebo reference="chassis">
-        <material>Gazebo/Red</material>
+        <material>Gazebo/RedTransparent</material>
     </gazebo>
 
     <!-- Park position is GPS-configured in config/hardware/moxl.yaml (no charging dock) -->
@@ -185,37 +185,98 @@
         <slip2>0.0</slip2>
     </gazebo>
 
-    <!-- MOWER DECK LINK -->
-    <!-- Swisher 60" 3-blade deck — gas engine, blade engagement via GPIO relay -->
-    <!-- Fixed joint: blade rotation not tracked in URDF (controlled by blade_controller node) -->
+    <!-- MOWER DECK — Swisher 60" 3-blade deck -->
+    <!-- Gas engine, blade engagement via GPIO relay -->
+    <!-- Three ~20" blades spaced across the 60" deck width, slight overlap -->
+    <!-- Blade spacing: center-to-center ~0.48m (19"), blade radius ~0.255m (10") -->
 
-    <joint name="mower_joint" type="fixed">
+    <xacro:property name="blade_radius" value="0.255"/>
+    <xacro:property name="blade_thickness" value="0.01"/>
+    <xacro:property name="blade_spacing" value="0.48"/>
+    <xacro:property name="blade_z" value="${robot['mower']['offset'][2] - chassis_offset_z}"/>
+
+    <!-- Center blade -->
+    <joint name="mower_center_joint" type="fixed">
         <parent link="chassis"/>
-        <child link="mower"/>
-        <origin xyz="${chassis_length/2} 0 ${robot['mower']['offset'][2] - chassis_offset_z}" rpy="0 0 0" />
+        <child link="mower_center"/>
+        <origin xyz="${chassis_length/2} 0 ${blade_z}" rpy="0 0 0"/>
     </joint>
 
-    <link name="mower">
+    <link name="mower_center">
         <visual>
             <geometry>
-                <cylinder radius="${robot['mower']['cut_radius']}" length="${robot['mower']['thickness']}"/>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
             </geometry>
-            <material name="red"/>
+            <material name="green"/>
         </visual>
         <collision>
             <geometry>
-                <cylinder radius="${robot['mower']['cut_radius']}" length="${robot['mower']['thickness']}"/>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
             </geometry>
         </collision>
-        <xacro:inertial_cylinder mass="${robot['mower']['mass']}" length="${robot['mower']['thickness']}" radius="${robot['mower']['cut_radius']}">
+        <xacro:inertial_cylinder mass="5.0" length="${blade_thickness}" radius="${blade_radius}">
             <origin xyz="0 0 0" rpy="0 0 0"/>
         </xacro:inertial_cylinder>
     </link>
 
-    <gazebo reference="mower">
-        <material>Gazebo/Red</material>
-        <mu1 value="0.5"/>
-        <mu2 value="0.5"/>
+    <gazebo reference="mower_center">
+        <material>Gazebo/Green</material>
+    </gazebo>
+
+    <!-- Left blade -->
+    <joint name="mower_left_joint" type="fixed">
+        <parent link="chassis"/>
+        <child link="mower_left"/>
+        <origin xyz="${chassis_length/2} ${blade_spacing} ${blade_z}" rpy="0 0 0"/>
+    </joint>
+
+    <link name="mower_left">
+        <visual>
+            <geometry>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
+            </geometry>
+            <material name="green"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
+            </geometry>
+        </collision>
+        <xacro:inertial_cylinder mass="5.0" length="${blade_thickness}" radius="${blade_radius}">
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:inertial_cylinder>
+    </link>
+
+    <gazebo reference="mower_left">
+        <material>Gazebo/Green</material>
+    </gazebo>
+
+    <!-- Right blade -->
+    <joint name="mower_right_joint" type="fixed">
+        <parent link="chassis"/>
+        <child link="mower_right"/>
+        <origin xyz="${chassis_length/2} ${-blade_spacing} ${blade_z}" rpy="0 0 0"/>
+    </joint>
+
+    <link name="mower_right">
+        <visual>
+            <geometry>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
+            </geometry>
+            <material name="green"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${blade_radius}" length="${blade_thickness}"/>
+            </geometry>
+        </collision>
+        <xacro:inertial_cylinder mass="5.0" length="${blade_thickness}" radius="${blade_radius}">
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:inertial_cylinder>
+    </link>
+
+    <gazebo reference="mower_right">
+        <material>Gazebo/Green</material>
     </gazebo>
 
     <!-- LEFT CASTER WHEEL LINK -->
