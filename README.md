@@ -6,7 +6,7 @@ An autonomous mower for large-scale grass areas like airstrips, built with ROS2 
 
 ## The Problem
 
-Mowing a grass airstrip is big job and the guy with the plane is often not around to cut it. This is a very stale project nearing 10 years now but fully with spring is coming soon optimism and a lot of claude code help maybe we can cut some grass this year.  The donor mower was chosen simply because we had one kicking around at the farm not getting used.  The initial build the plan is to use at CDS2 (Disley, Saskatchewan) has a 2246 ft x 78 ft grass runway that needs regular cutting — that's nearly half a mile of back-and-forth passes with a mower. RTK GPS gives centimeter-level accuracy in an open field. A robot can do this.
+Mowing a grass airstrip is big job and the guy with the plane is often not around to cut it. This is a very stale project nearing 10 years now but "with spring is coming soon" optimism and a lot of claude code help and maybe and suck a few CDS2-er in helping maybe we can cut some grass this year.  The donor mower was chosen simply because we had one kicking around at the farm not getting used.  The initial build the plan is to use at CDS2 (Disley, Saskatchewan) has a 2246 ft x 78 ft grass runway that needs regular cutting — that's nearly half a mile of back-and-forth passes with a mower. RTK GPS gives centimeter-level accuracy in an open field. A robot can do this.
 
 ## The Approach
 
