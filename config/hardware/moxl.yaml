@@ -1,0 +1,67 @@
+# Moxl — Robot Mower XL hardware configuration
+# Swisher 60" towable 3-blade deck with wheelchair motor differential drive
+#
+# Dimensions from engineering drawing (Dec 2024) — all converted from inches.
+# Values marked "TODO: verify" should be confirmed on the physical robot.
+
+chassis:
+  # x, y, z offset in m of chassis from center of robot (base_link at drive axle center)
+  # Swisher deck trails behind the drive axle
+  offset: [-0.45, 0.0, -0.05] # m (deck center ~18" behind drive axle)
+
+  # Swisher 60" deck: 1.52m wide, ~44 3/4" long from drawing, ~15 1/2" tall
+  width: 1.52   # m (60" Swisher deck)
+  height: 0.394  # m (15 1/2" from drawing)
+  length: 1.137  # m (44 3/4" from drawing)
+
+  mass: 120 # kg (Swisher deck + engine + frame, estimated)
+
+mower:
+  # Mower blades are under the Swisher deck, gas-engine-powered
+  # Blade engagement is via GPIO relay (see blade_controller node)
+  offset: [-0.45, 0.0, -0.15] # m (centered under deck)
+
+  # Swisher 60" has 3 blades, effective cut radius covers the full deck width
+  cut_radius: 0.76 # m (half of 60" = 30" = 0.76m)
+
+  thickness: 0.05 # m
+  mass: 15 # kg (blades + spindles)
+
+wheel:
+  # Drive wheels (turf tires on wheelchair motors)
+  # x=0 (at base_link), y = half of wheel separation
+  # From drawing: 51 3/4" outer-to-outer, ~5" tire width → ~46.75" center-to-center
+  offset: [0, 0.594, 0] # m (wheel separation ~1.19m, so y=0.594)
+
+  mass: 5.0 # kg (turf tire + wheelchair motor)
+
+  # Turf tire dimensions — ~13x5.00-6 size
+  radius: 0.165  # m (~13" diameter → 6.5" radius)
+  thickness: 0.127 # m (~5" wide)
+
+  velocity:
+    max: 1.5  # m/s (~3.4 mph)
+    min: -0.5 # m/s (slow reverse)
+
+  # No gear ratio needed — BTS7960 drives motors directly via PWM
+  gear_ratio: 1.0
+
+caster_wheel:
+  # Original Swisher caster wheels at the back of the deck
+  # From drawing: s3 = 35 1/4" = 0.895m behind drive axle, ~12" from centerline
+  offset: [-0.895, 0.30] # m (x behind drive axle, y from center)
+  radius: 0.076 # m (~6" diameter casters)
+  mass: 2.0 # kg
+
+gps:
+  antenna:
+    # FarmTRX RTK GPS antenna — mounted on a pole above the drive frame
+    # TODO: verify actual offset from drive axle center (base_link)
+    offset: [0.0, 0.0, 0.50] # m (centered, 0.5m above base_link)
+
+park:
+  # GPS coordinates for the parking/home position
+  # Set this to wherever you want the mower to return after completing a job
+  latitude: 50.63860  # near the NW corner of runway 11/29
+  longitude: -105.04030
+  heading: 110.0 # degrees true, facing along the runway

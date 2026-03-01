@@ -1,0 +1,26 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    diff_drive_base_controller:
+      type: diff_drive_controller/DiffDriveController
+
+diff_drive_base_controller:
+  ros__parameters:
+    publish_rate: 50.0
+
+    enable_odom_tf: false
+
+    left_wheel_names: ['left_wheel_joint']
+    right_wheel_names: ['right_wheel_joint']
+    wheel_separation: 1.19  # meters (from drawing: 51 3/4" outer - 5" tires = 46.75" c-t-c)
+    wheel_radius: 0.165    # meters (from drawing: ~13" dia turf tires = 6.5" radius)
+    wheels_per_side: 1
+
+    use_stamped_vel: true
+
+    # Open loop — no wheel encoders, GPS provides odometry
+    open_loop: true

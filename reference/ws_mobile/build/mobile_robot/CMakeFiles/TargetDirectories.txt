@@ -1,0 +1,9 @@
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/uninstall.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/mobile_robot_uninstall.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/test.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/edit_cache.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/rebuild_cache.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/list_install_components.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/install.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/install/local.dir
+/mnt/c/moxl/ws_mobile/build/mobile_robot/CMakeFiles/install/strip.dir

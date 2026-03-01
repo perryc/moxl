@@ -1,0 +1,389 @@
+# MOXL Wiring Harness — WireViz
+# Generate: wireviz moxl_harness.yml
+# Output:   moxl_harness.svg, moxl_harness.png, moxl_harness.bom.tsv
+
+metadata:
+  title: MOXL Wiring Harness
+  description: Autonomous airstrip mower — full electrical system
+  revision: "0.1"
+  author: Perry C
+
+# ─── Connectors ────────────────────────────────────────────────
+
+connectors:
+
+  # ── Raspberry Pi GPIO Header ──────────────────────────────────
+  Pi:
+    type: Raspberry Pi 4/5 GPIO
+    subtype: male
+    pincount: 14
+    pinlabels: [GPIO4/RPM, GPIO12/L_RPWM, GPIO13/R_RPWM, GPIO16/L_LPWM,
+                GPIO17/STARTER, GPIO18/CHOKE, GPIO20/L_REN, GPIO21/L_LEN,
+                GPIO23/R_REN, GPIO24/R_LEN, GPIO25/BLADE, GPIO26/R_LPWM,
+                GPIO27/BELT, GND]
+    notes: "3.3V logic — level shift if needed"
+
+  # ── Power ─────────────────────────────────────────────────────
+  BAT1:
+    type: 12V Lead-Acid
+    pincount: 2
+    pinlabels: ["+12V", GND]
+    notes: "Bottom of series stack"
+
+  BAT2:
+    type: 12V Lead-Acid
+    pincount: 2
+    pinlabels: ["+24V", "+12V tap"]
+    notes: "Top of series stack"
+
+  FUSE_24V:
+    type: Blade fuse 40A
+    pincount: 2
+    pinlabels: [IN, OUT]
+
+  FUSE_12V:
+    type: Blade fuse 20A
+    pincount: 2
+    pinlabels: [IN, OUT]
+
+  # ── Motor Drivers ─────────────────────────────────────────────
+  BTS_L:
+    type: BTS7960 43A H-Bridge
+    pincount: 8
+    pinlabels: [RPWM, LPWM, R_EN, L_EN, "B+", "B-", "M+", "M-"]
+    notes: "Left drive motor controller"
+
+  BTS_R:
+    type: BTS7960 43A H-Bridge
+    pincount: 8
+    pinlabels: [RPWM, LPWM, R_EN, L_EN, "B+", "B-", "M+", "M-"]
+    notes: "Right drive motor controller"
+
+  MOTOR_L:
+    type: Wheelchair Motor
+    pincount: 2
+    pinlabels: ["+", "-"]
+    notes: Left drive
+
+  MOTOR_R:
+    type: Wheelchair Motor
+    pincount: 2
+    pinlabels: ["+", "-"]
+    notes: Right drive
+
+  # ── Engine Subsystem ──────────────────────────────────────────
+  STARTER_RELAY:
+    type: Automotive relay 30A
+    pincount: 4
+    pinlabels: ["COIL+", "COIL-", COM, "NO"]
+    notes: "12V coil, GPIO 17 drives via MOSFET"
+
+  STARTER_MOTOR:
+    type: 12V Starter
+    pincount: 2
+    pinlabels: ["+", "-"]
+
+  CHOKE_SERVO:
+    type: Servo motor
+    pincount: 3
+    pinlabels: [PWM, "+5V", GND]
+    notes: "Choke lever — GPIO 18 PWM"
+
+  RPM_SENSOR:
+    type: Inductive tach pickup
+    pincount: 2
+    pinlabels: [SIG, GND]
+    notes: "Engine RPM — GPIO 4"
+
+  CHT_SENSOR:
+    type: Thermocouple + I2C ADC
+    pincount: 4
+    pinlabels: [SDA, SCL, VCC, GND]
+    notes: "Cylinder head temp — I2C"
+
+  # ── Blade Engagement ──────────────────────────────────────────
+  BLADE_RELAY:
+    type: Relay module
+    pincount: 3
+    pinlabels: [SIG, VCC, GND]
+    notes: "GPIO 25"
+
+  BELT_ACTUATOR:
+    type: TBD (linear actuator or servo)
+    pincount: 3
+    pinlabels: [SIG, VCC, GND]
+    notes: "GPIO 27 — HARDWARE NOT SELECTED"
+
+  # ── GPS ───────────────────────────────────────────────────────
+  GPS:
+    type: FarmTRX RTK
+    pincount: 4
+    pinlabels: [TX, RX, VCC, GND]
+    notes: "NMEA0183 serial"
+
+  GPS_USB:
+    type: USB-Serial adapter
+    pincount: 4
+    pinlabels: [RX, TX, "+5V", GND]
+    notes: "/dev/ttyUSB0 — verify port"
+
+  # ── Alternator ────────────────────────────────────────────────
+  ALTERNATOR:
+    type: 24V Alternator (converted)
+    pincount: 2
+    pinlabels: ["+24V", GND]
+    notes: "Belt-driven from blade pulley"
+
+  # ── E-Stop ────────────────────────────────────────────────────
+  ESTOP_BTN:
+    type: Mushroom head NC pushbutton
+    pincount: 2
+    pinlabels: [SIG, GND]
+    notes: "FUTURE — pin TBD"
+
+# ─── Cables ─────────────────────────────────────────────────────
+
+cables:
+
+  W_BAT_SERIES:
+    wirecount: 1
+    gauge: 4 AWG
+    length: 0.3 m
+    colors: [RD]
+    notes: "Battery series jumper"
+
+  W_24V_BUS:
+    wirecount: 2
+    gauge: 8 AWG
+    length: 0.5 m
+    colors: [RD, BK]
+    notes: "24V to main fuse"
+
+  W_24V_BTS_L:
+    wirecount: 2
+    gauge: 10 AWG
+    length: 1.0 m
+    colors: [RD, BK]
+    notes: "24V to left driver"
+
+  W_24V_BTS_R:
+    wirecount: 2
+    gauge: 10 AWG
+    length: 1.0 m
+    colors: [RD, BK]
+    notes: "24V to right driver"
+
+  W_MOTOR_L:
+    wirecount: 2
+    gauge: 10 AWG
+    length: 0.8 m
+    colors: [RD, BK]
+    notes: "Left motor leads"
+
+  W_MOTOR_R:
+    wirecount: 2
+    gauge: 10 AWG
+    length: 0.8 m
+    colors: [RD, BK]
+    notes: "Right motor leads"
+
+  W_12V_BUS:
+    wirecount: 2
+    gauge: 10 AWG
+    length: 0.5 m
+    colors: [RD, BK]
+    notes: "12V center tap to fuse"
+
+  W_STARTER:
+    wirecount: 2
+    gauge: 6 AWG
+    length: 0.8 m
+    colors: [RD, BK]
+    notes: "Starter motor power"
+
+  W_PI_BTS_L:
+    wirecount: 4
+    gauge: 22 AWG
+    length: 0.6 m
+    colors: [YE, GN, BU, WH]
+    notes: "Pi GPIO → left BTS7960 logic"
+
+  W_PI_BTS_R:
+    wirecount: 4
+    gauge: 22 AWG
+    length: 0.6 m
+    colors: [YE, GN, BU, WH]
+    notes: "Pi GPIO → right BTS7960 logic"
+
+  W_STARTER_SIG:
+    wirecount: 2
+    gauge: 22 AWG
+    length: 0.5 m
+    colors: [OG, BK]
+    notes: "GPIO 17 → starter relay coil"
+
+  W_CHOKE:
+    wirecount: 3
+    gauge: 22 AWG
+    length: 0.5 m
+    colors: [OG, RD, BK]
+    notes: "GPIO 18 PWM → choke servo"
+
+  W_RPM:
+    wirecount: 2
+    gauge: 22 AWG
+    length: 0.8 m
+    colors: [YE, BK]
+    notes: "GPIO 4 ← RPM tach"
+
+  W_CHT:
+    wirecount: 4
+    gauge: 22 AWG
+    length: 0.8 m
+    colors: [BU, YE, RD, BK]
+    notes: "I2C → CHT ADC"
+
+  W_BLADE:
+    wirecount: 3
+    gauge: 22 AWG
+    length: 0.5 m
+    colors: [OG, RD, BK]
+    notes: "GPIO 25 → blade relay"
+
+  W_BELT:
+    wirecount: 3
+    gauge: 22 AWG
+    length: 0.8 m
+    colors: [OG, RD, BK]
+    notes: "GPIO 27 → belt actuator"
+
+  W_GPS:
+    wirecount: 4
+    gauge: 22 AWG
+    length: 1.5 m
+    colors: [GN, WH, RD, BK]
+    notes: "FarmTRX serial → USB adapter"
+
+  W_ALT:
+    wirecount: 2
+    gauge: 8 AWG
+    length: 1.0 m
+    colors: [RD, BK]
+    notes: "Alternator → battery bus"
+
+# ─── Connections ────────────────────────────────────────────────
+
+connections:
+
+  # ── Battery Series: BAT1 +12V → BAT2 ground ──────────────────
+  -
+    - BAT1: [1]
+    - W_BAT_SERIES: [1]
+    - BAT2: [2]
+
+  # ── 24V Bus: BAT2 +24V → fuse ────────────────────────────────
+  -
+    - BAT2: [1, 1]
+    - W_24V_BUS: [1, 2]
+    - FUSE_24V: [1, 1]
+
+  # ── 24V fuse → left BTS7960 power ────────────────────────────
+  -
+    - FUSE_24V: [2, 2]
+    - W_24V_BTS_L: [1, 2]
+    - BTS_L: [5, 6]
+
+  # ── 24V fuse → right BTS7960 power ───────────────────────────
+  -
+    - FUSE_24V: [2, 2]
+    - W_24V_BTS_R: [1, 2]
+    - BTS_R: [5, 6]
+
+  # ── Left BTS7960 → left motor ────────────────────────────────
+  -
+    - BTS_L: [7, 8]
+    - W_MOTOR_L: [1, 2]
+    - MOTOR_L: [1, 2]
+
+  # ── Right BTS7960 → right motor ──────────────────────────────
+  -
+    - BTS_R: [7, 8]
+    - W_MOTOR_R: [1, 2]
+    - MOTOR_R: [1, 2]
+
+  # ── Pi GPIO → left BTS7960 logic (12, 16, 20, 21) ────────────
+  -
+    - Pi: [2, 4, 7, 8]
+    - W_PI_BTS_L: [1, 2, 3, 4]
+    - BTS_L: [1, 2, 3, 4]
+
+  # ── Pi GPIO → right BTS7960 logic (13, 26, 23, 24) ───────────
+  -
+    - Pi: [3, 12, 9, 10]
+    - W_PI_BTS_R: [1, 2, 3, 4]
+    - BTS_R: [1, 2, 3, 4]
+
+  # ── 12V Bus: BAT center tap → fuse ───────────────────────────
+  -
+    - BAT1: [1, 2]
+    - W_12V_BUS: [1, 2]
+    - FUSE_12V: [1, 1]
+
+  # ── 12V fuse → starter relay → starter motor ─────────────────
+  -
+    - FUSE_12V: [2, 2]
+    - W_STARTER: [1, 2]
+    - STARTER_RELAY: [3, 4]
+
+  -
+    - STARTER_RELAY: [4, 4]
+    - W_STARTER: [1, 2]
+    - STARTER_MOTOR: [1, 2]
+
+  # ── Pi GPIO 17 → starter relay coil ──────────────────────────
+  -
+    - Pi: [5, 14]
+    - W_STARTER_SIG: [1, 2]
+    - STARTER_RELAY: [1, 2]
+
+  # ── Pi GPIO 18 → choke servo ─────────────────────────────────
+  -
+    - Pi: [6, 6, 14]
+    - W_CHOKE: [1, 2, 3]
+    - CHOKE_SERVO: [1, 2, 3]
+
+  # ── Pi GPIO 4 ← RPM sensor ───────────────────────────────────
+  -
+    - Pi: [1, 14]
+    - W_RPM: [1, 2]
+    - RPM_SENSOR: [1, 2]
+
+  # ── Pi I2C → CHT sensor ──────────────────────────────────────
+  -
+    - Pi: [1, 1, 1, 14]
+    - W_CHT: [1, 2, 3, 4]
+    - CHT_SENSOR: [1, 2, 3, 4]
+
+  # ── Pi GPIO 25 → blade relay ─────────────────────────────────
+  -
+    - Pi: [11, 11, 14]
+    - W_BLADE: [1, 2, 3]
+    - BLADE_RELAY: [1, 2, 3]
+
+  # ── Pi GPIO 27 → belt actuator ───────────────────────────────
+  -
+    - Pi: [13, 13, 14]
+    - W_BELT: [1, 2, 3]
+    - BELT_ACTUATOR: [1, 2, 3]
+
+  # ── GPS serial → USB adapter ─────────────────────────────────
+  -
+    - GPS: [1, 2, 3, 4]
+    - W_GPS: [1, 2, 3, 4]
+    - GPS_USB: [1, 2, 3, 4]
+
+  # ── Alternator → 24V bus ──────────────────────────────────────
+  -
+    - ALTERNATOR: [1, 2]
+    - W_ALT: [1, 2]
+    - BAT2: [1, 2]

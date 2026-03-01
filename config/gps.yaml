@@ -1,0 +1,18 @@
+# FarmTRX RTK GPS — NMEA0183 serial output
+# RTK corrections handled internally by the FarmTRX unit
+#
+# Published topics:
+#   /gps/fix (sensor_msgs/NavSatFix)   — position + RTK fix status
+#   /gps/vel (geometry_msgs/TwistStamped) — GPS-derived velocity
+#   /gps/time_reference (sensor_msgs/TimeReference)
+#
+# RTK fix quality codes in NavSatFix.status.status:
+#   0 = no fix, 1 = autonomous, 2 = DGPS, 4 = RTK fixed, 5 = RTK float
+
+nmea_navsat_driver:
+  ros__parameters:
+    port: /dev/ttyUSB0        # TODO: verify actual serial port on Pi
+    baud: 115200              # TODO: verify with FarmTRX documentation
+    frame_id: gps
+    time_ref_source: gps
+    useRMC: false             # use GGA for position (has RTK fix quality indicator)

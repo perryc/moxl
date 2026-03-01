@@ -1,0 +1,12 @@
+# Moxl mowing parameters
+mowing:
+  cutting_width: 1.52    # meters (Swisher 60" deck)
+  overlap: 0.15          # meters (~10% overlap between strips)
+  mowing_speed: 1.0      # m/s (~2.2 mph)
+  turn_speed: 0.5        # m/s during headland turns
+  headland_turns: true
+  turn_radius: 2.0       # meters (gentle turns to protect turf)
+
+airstrip:
+  config_file: "config/airstrips/CDS2.json"
+  runway: "11/29"        # which runway to mow (11/29 has all 4 corners RTK-surveyed)

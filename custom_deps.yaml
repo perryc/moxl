@@ -1,0 +1,4 @@
+# Moxl custom dependencies
+# BTS7960 hardware interface is built in-tree (src/lib/bts7960_hw_interface/)
+# FarmTRX GPS uses standard nmea_navsat_driver (installed via apt)
+repositories: {}

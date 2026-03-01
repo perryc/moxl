@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:unless value="$(arg sim_mode)">
+        <!-- BTS7960 dual H-bridge motor drivers via Raspberry Pi GPIO
+             Two boards: one per wheelchair motor, 24V PWM
+             Pin assignments configurable below -->
+
+        <ros2_control name="moxl_drive" type="system">
+            <hardware>
+                <plugin>bts7960_hw_interface/BTS7960System</plugin>
+                <param name="left_rpwm_pin">12</param>
+                <param name="left_lpwm_pin">16</param>
+                <param name="left_ren_pin">20</param>
+                <param name="left_len_pin">21</param>
+                <param name="right_rpwm_pin">13</param>
+                <param name="right_lpwm_pin">26</param>
+                <param name="right_ren_pin">23</param>
+                <param name="right_len_pin">24</param>
+                <param name="pwm_frequency">20000</param>
+                <param name="max_duty_cycle">255</param>
+                <param name="wheel_radius">${robot['wheel']['radius']}</param>
+                <param name="max_velocity">${robot['wheel']['velocity']['max']}</param>
+            </hardware>
+            <joint name="left_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">${robot['wheel']['velocity']['min']}</param>
+                    <param name="max">${robot['wheel']['velocity']['max']}</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="right_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">${robot['wheel']['velocity']['min']}</param>
+                    <param name="max">${robot['wheel']['velocity']['max']}</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+        </ros2_control>
+    </xacro:unless>
+</robot>

@@ -1,0 +1,18 @@
+# Autonomous mowing mission action
+# Sequences: preflight → transit → mow all strips → return to park
+
+# Goal
+string airstrip_id    # e.g. "CDS2"
+string runway_id      # e.g. "11/29"
+---
+# Result
+bool success
+uint16 strips_completed
+string message
+---
+# Feedback
+uint8 state           # MissionStatus constants
+uint16 current_strip
+uint16 total_strips
+float32 progress_pct
+string status_text

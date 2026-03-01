@@ -1,0 +1,4 @@
+# Request engine start (cranking sequence)
+---
+bool success
+string message

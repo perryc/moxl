@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="gps">
+    <joint name="gps_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="gps"/>
+        <origin xyz="${robot['gps']['antenna']['offset'][0]} ${robot['gps']['antenna']['offset'][1]} ${robot['gps']['antenna']['offset'][2]}" rpy="0 0 0"/>
+    </joint>
+
+    <link name="gps">
+        <!-- GPS antenna pole + puck for visualization -->
+        <visual>
+            <!-- Pole from base_link up to antenna -->
+            <origin xyz="0 0 -0.20" rpy="0 0 0"/>
+            <geometry>
+                <cylinder radius="0.015" length="0.40"/>
+            </geometry>
+            <material name="grey">
+                <color rgba="0.5 0.5 0.5 1"/>
+            </material>
+        </visual>
+        <visual>
+            <!-- FarmTRX antenna puck -->
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <cylinder radius="0.06" length="0.03"/>
+            </geometry>
+            <material name="gps_black">
+                <color rgba="0.1 0.1 0.1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <gazebo reference="gps">
+        <sensor name="gps" type="navsat">
+            <gz_frame_id>gps</gz_frame_id>
+            <always_on>1</always_on>
+            <update_rate>5</update_rate>
+            <topic>gps/fix</topic>
+        </sensor>
+
+        <material>Gazebo/Black</material>
+    </gazebo>
+</robot>

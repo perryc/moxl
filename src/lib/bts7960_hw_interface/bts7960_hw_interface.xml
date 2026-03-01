@@ -1,0 +1,10 @@
+<library path="bts7960_hw_interface">
+  <class name="bts7960_hw_interface/BTS7960System"
+         type="bts7960_hw_interface::BTS7960System"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware interface for two BTS7960 H-bridge motor drivers
+      controlling a differential-drive robot via Raspberry Pi GPIO (pigpio).
+    </description>
+  </class>
+</library>
