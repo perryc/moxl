@@ -16,3 +16,8 @@ nmea_navsat_driver:
     frame_id: gps
     time_ref_source: gps
     useRMC: false             # use GGA for position (has RTK fix quality indicator)
+    # nmea_navsat_driver also publishes ALL raw NMEA sentences on /nmea_sentence
+    # (nmea_msgs/Sentence). heading_to_imu_node subscribes to this for:
+    #   $HCHDG — Magnetic heading with deviation/variation (fallback heading source)
+    #   $TIROT — Rate of turn from gyroscope (deg/min) → angular velocity for EKF
+    #   $GPXDR — Transducer data: MACHINE_WORK digital input = blade engagement state
