@@ -109,7 +109,7 @@ def generate_launch_description():
                 'airstrip_file': airstrip_file,
                 'runway': '11/29',
                 'cutting_width': 1.52,
-                'overlap': 0.15,
+                'overlap': 0.05,
                 'use_sim_time': True,
             }],
         ),
@@ -161,7 +161,7 @@ def generate_launch_description():
                 [os.path.join(get_package_share_directory('ros_gz_sim'),
                               'launch', 'gz_sim.launch.py')]),
             launch_arguments={
-                'gz_args': '-r -v 6 {}'.format(world_path),
+                'gz_args': '-r -v 4 {}'.format(world_path),
             }.items()),
         RegisterEventHandler(
             event_handler=OnProcessExit(

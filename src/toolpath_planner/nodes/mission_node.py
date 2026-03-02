@@ -37,7 +37,7 @@ from moxl.msg import EngineStatus, BladeStatus, MissionStatus
 from moxl.srv import StartEngine, StopEngine, SetBlades
 from moxl.action import MowMission
 
-from nav2_msgs.action import NavigateThroughPoses
+from nav2_msgs.action import NavigateThroughPoses, FollowPath
 from robot_localization.srv import FromLL
 
 
@@ -61,6 +61,12 @@ class MissionNode(Node):
         self._active_nav_goal: ClientGoalHandle | None = None
 
         # Subscribers
+        self.full_toolpath = None
+        self.create_subscription(
+            Path, "/moxl/toolpath/all",
+            self._full_toolpath_cb, 10,
+            callback_group=self.cb_group,
+        )
         self.create_subscription(
             Path, "/moxl/toolpath/current_strip",
             self._strip_path_cb, 10,
@@ -103,9 +109,13 @@ class MissionNode(Node):
             FromLL, "/fromLL", callback_group=self.cb_group
         )
 
-        # Nav2 action client
+        # Nav2 action clients
         self._nav_client = rclpy.action.ActionClient(
             self, NavigateThroughPoses, "navigate_through_poses",
+            callback_group=self.cb_group,
+        )
+        self._follow_path_client = rclpy.action.ActionClient(
+            self, FollowPath, "follow_path",
             callback_group=self.cb_group,
         )
 
@@ -123,6 +133,9 @@ class MissionNode(Node):
         self.get_logger().info("Mission orchestrator ready")
 
     # ── Subscription callbacks ───────────────────────────────────────
+
+    def _full_toolpath_cb(self, msg: Path):
+        self.full_toolpath = msg
 
     def _strip_path_cb(self, msg: Path):
         self.current_strip_path = msg
@@ -213,67 +226,57 @@ class MissionNode(Node):
             if goal_handle.is_cancel_requested:
                 return self._cancel(goal_handle, result)
 
-            # Wait for first strip path to arrive
+            # Wait for full toolpath to arrive
             for _ in range(50):  # 5 second timeout
-                if self.current_strip_path and len(self.current_strip_path.poses) > 0:
+                if self.full_toolpath and len(self.full_toolpath.poses) > 0:
                     break
                 await self._sleep(0.1)
             else:
-                return self._abort(goal_handle, result, "No strip path received")
+                return self._abort(goal_handle, result, "No toolpath received")
 
-            # Count strips by checking how many next_strip calls succeed
+            # Count strips
             self.total_strips = await self._count_strips()
             if self.total_strips == 0:
                 return self._abort(goal_handle, result, "No strips generated")
 
-            # Regenerate to reset strip index
-            await self._call_generate_toolpath()
-            await self._sleep(1.0)  # Let first strip path arrive
-
-            self.get_logger().info(f"Toolpath ready: {self.total_strips} strips")
+            self.get_logger().info(
+                f"Toolpath ready: {self.total_strips} strips, "
+                f"{len(self.full_toolpath.poses)} waypoints"
+            )
 
             # ── MOWING ───────────────────────────────────────────
             self.state = MissionStatus.MOWING
-            self.current_strip = 0
+            self.current_strip = 1
+            self.total_strips = self.total_strips
+            self._send_feedback(goal_handle, feedback)
+            self.get_logger().info(
+                f"Mowing all {self.total_strips} strips as continuous path"
+            )
 
-            for strip_idx in range(self.total_strips):
+            # Convert entire toolpath to map frame in one go
+            map_poses = await self._convert_strip_to_map(self.full_toolpath)
+            if not map_poses:
+                return self._abort(
+                    goal_handle, result,
+                    "Failed to convert toolpath to map frame"
+                )
+
+            self.get_logger().info(
+                f"Sending {len(map_poses)} waypoints to Nav2 FollowPath"
+            )
+
+            # Send toolpath directly to controller — bypasses planner
+            # (open field, no obstacles, pre-computed path)
+            nav_ok = await self._follow_path(map_poses)
+            if not nav_ok:
                 if goal_handle.is_cancel_requested:
                     return self._cancel(goal_handle, result)
-
-                self.current_strip = strip_idx + 1
-                self._send_feedback(goal_handle, feedback)
-                self.get_logger().info(
-                    f"Mowing strip {self.current_strip}/{self.total_strips}"
+                return self._abort(
+                    goal_handle, result,
+                    "Navigation failed during mowing"
                 )
 
-                # Wait for current strip path
-                await self._sleep(0.5)
-                if self.current_strip_path is None:
-                    return self._abort(goal_handle, result, "Strip path missing")
-
-                # Convert lat/lon waypoints to map frame
-                map_poses = await self._convert_strip_to_map(
-                    self.current_strip_path
-                )
-                if not map_poses:
-                    return self._abort(
-                        goal_handle, result,
-                        f"Failed to convert strip {self.current_strip} to map frame"
-                    )
-
-                # Navigate the strip via Nav2
-                nav_ok = await self._navigate_through(map_poses)
-                if not nav_ok:
-                    if goal_handle.is_cancel_requested:
-                        return self._cancel(goal_handle, result)
-                    return self._abort(
-                        goal_handle, result,
-                        f"Navigation failed on strip {self.current_strip}"
-                    )
-
-                # Advance to next strip
-                if strip_idx < self.total_strips - 1:
-                    await self._call_next_strip()
+            self.current_strip = self.total_strips
 
             # ── RETURNING ────────────────────────────────────────
             self.state = MissionStatus.RETURNING
@@ -464,6 +467,45 @@ class MissionNode(Node):
 
         if not goal_handle.accepted:
             self.get_logger().error("Nav2 goal rejected")
+            return False
+
+        with self._goal_lock:
+            self._active_nav_goal = goal_handle
+
+        result_future = goal_handle.get_result_async()
+        result = await result_future
+
+        with self._goal_lock:
+            self._active_nav_goal = None
+
+        return result.status == 4  # STATUS_SUCCEEDED
+
+    async def _follow_path(self, poses: list[PoseStamped]) -> bool:
+        """Send a pre-computed path directly to the controller via FollowPath.
+
+        This bypasses the global planner entirely — ideal for open-field
+        mowing where the toolpath IS the plan and there are no obstacles.
+        """
+        if not self._follow_path_client.wait_for_server(timeout_sec=10.0):
+            self.get_logger().error("Nav2 follow_path not available")
+            return False
+
+        # Build a nav_msgs/Path from the poses
+        path_msg = Path()
+        path_msg.header.frame_id = "map"
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.poses = poses
+
+        goal = FollowPath.Goal()
+        goal.path = path_msg
+        goal.controller_id = "FollowPath"
+        goal.goal_checker_id = "general_goal_checker"
+
+        send_goal_future = self._follow_path_client.send_goal_async(goal)
+        goal_handle = await send_goal_future
+
+        if not goal_handle.accepted:
+            self.get_logger().error("FollowPath goal rejected")
             return False
 
         with self._goal_lock:

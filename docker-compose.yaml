@@ -13,6 +13,7 @@ services:
 
   sim:
     build: .
+    init: true
     ipc: host
     security_opt:
       - seccomp:unconfined

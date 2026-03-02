@@ -1,7 +1,7 @@
 # Moxl mowing parameters
 mowing:
   cutting_width: 1.52    # meters (Swisher 60" deck)
-  overlap: 0.15          # meters (~10% overlap between strips)
+  overlap: 0.05          # meters (~2" overlap between strips)
   mowing_speed: 1.0      # m/s (~2.2 mph)
   turn_speed: 0.5        # m/s during headland turns
   headland_turns: true
