@@ -21,10 +21,10 @@ The fork keeps the proven ROS2 infrastructure — ros2_control, Nav2 path follow
 | OpenMowerNext | MOXL | Why |
 |---|---|---|
 | VESC motor controllers | BTS7960 43A H-bridges | Different motors, 24V system |
-| u-blox F9P GPS | FarmTRX RTK (NMEA serial) | Already owned, corrections handled onboard |
+| u-blox F9P GPS | FarmTRX RTK (NMEA serial) | We make this stuff! Let's use it |
 | NTRIP client | Removed | FarmTRX handles its own RTK corrections |
 | micro-ROS + custom mainboard | Raspberry Pi GPIO directly | No intermediate microcontroller needed |
-| IMU (on mainboard) | GPS magnetometer heading | Open field, no tight spaces |
+| IMU (on mainboard) | GPS magnetometer heading | FarmTRX GPS has Magnetometer and IMU will send via serial |
 | Lawn polygon map server | Airstrip toolpath planner | Runway data from surveyed coordinates |
 | Docking station | GPS park position | No charging dock — gas engine |
 | YardForce 500B URDF | Custom URDF from measurements | Completely different machine |
