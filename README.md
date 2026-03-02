@@ -157,7 +157,7 @@ For CDS2 runway 11/29 (2246 ft x 78 ft) with a 60" deck and 15cm overlap: ~17 st
 
 ### Aviation Radio Traffic Detector
 
-You can't land if a mower is on the runway. Aircraft use 122.8 MHz CTAF (Common Traffic Advisory Frequency) to announce their position in the traffic pattern. MOXL monitors this frequency with an RTL-SDR USB dongle (~$30) and automatically evacuates the runway when radio traffic is detected.
+You can't land if a mower is on the runway. Mo-XL monitors this airport traffic frequency with an RTL-SDR USB dongle (~$30) and automatically evacuates the runway when radio traffic is detected.
 
 **How it works:**
 
