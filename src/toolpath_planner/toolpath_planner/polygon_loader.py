@@ -65,6 +65,33 @@ def get_corner_points(runway: dict) -> list[tuple[float, float]]:
     return [(c["latitude"], c["longitude"]) for c in corners]
 
 
+def get_clear_zones(runway: dict) -> list[dict]:
+    """Extract clear zone polygons from a runway.
+
+    Each clear zone has a name and a list of (lat, lon) vertices.
+
+    Args:
+        runway: Runway dict from get_runway().
+
+    Returns:
+        List of dicts with 'name' and 'vertices' keys.
+        Vertices are list of (lat, lon) tuples.
+        Returns empty list if no clear zones defined.
+    """
+    zones = runway.get("clear_zones", [])
+    result = []
+    for zone in zones:
+        vertices = [(v["latitude"], v["longitude"]) for v in zone["vertices"]]
+        centroid_lat = sum(v[0] for v in vertices) / len(vertices)
+        centroid_lon = sum(v[1] for v in vertices) / len(vertices)
+        result.append({
+            "name": zone["name"],
+            "vertices": vertices,
+            "centroid": (centroid_lat, centroid_lon),
+        })
+    return result
+
+
 def get_corner_accuracy(runway: dict) -> list[float]:
     """Get the GPS accuracy (in meters) of each corner point.
 

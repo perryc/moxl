@@ -25,6 +25,7 @@ setup(
             "blade_controller_node = nodes.blade_controller_node:main",
             "mission_node = nodes.mission_node:main",
             "safety_monitor_node = nodes.safety_monitor_node:main",
+            "sdr_detector_node = nodes.sdr_detector_node:main",
         ],
     },
 )

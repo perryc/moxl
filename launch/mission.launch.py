@@ -72,5 +72,20 @@ def generate_launch_description():
                     }
                 ],
             ),
+
+            # SDR radio traffic detector — monitors CTAF for aircraft comms
+            Node(
+                package="toolpath_planner",
+                executable="sdr_detector_node",
+                name="sdr_detector",
+                output="screen",
+                parameters=[
+                    {
+                        "enabled": True,
+                        "frequency_mhz": 122.8,
+                        "quiet_period_sec": 300.0,
+                    }
+                ],
+            ),
         ]
     )

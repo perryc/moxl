@@ -31,7 +31,9 @@ from std_srvs.srv import Trigger
 from visualization_msgs.msg import Marker, MarkerArray
 from builtin_interfaces.msg import Time
 
-from toolpath_planner.polygon_loader import load_airport, get_runway, get_corner_points
+from toolpath_planner.polygon_loader import (
+    load_airport, get_runway, get_corner_points, get_clear_zones,
+)
 from toolpath_planner.strip_generator import generate_strips, compute_strip_stats
 
 
@@ -49,6 +51,7 @@ class ToolpathNode(Node):
         # State
         self.strips: list[list[tuple[float, float]]] = []
         self.current_strip_index = 0
+        self.clear_zones: list[dict] = []
 
         # Publishers
         self.all_path_pub = self.create_publisher(Path, "/moxl/toolpath/all", 10)
@@ -58,6 +61,9 @@ class ToolpathNode(Node):
         self.marker_pub = self.create_publisher(
             MarkerArray, "/moxl/toolpath/markers", 10
         )
+        self.clear_zone_marker_pub = self.create_publisher(
+            MarkerArray, "/moxl/clear_zone/markers", 10
+        )
 
         # Services
         self.create_service(
@@ -65,6 +71,9 @@ class ToolpathNode(Node):
         )
         self.create_service(
             Trigger, "/moxl/toolpath/next_strip", self.next_strip_callback
+        )
+        self.create_service(
+            Trigger, "/moxl/toolpath/clear_zones", self.clear_zones_callback
         )
 
         # Generate on startup if airstrip_file is provided
@@ -104,6 +113,16 @@ class ToolpathNode(Node):
 
         self.strips = generate_strips(corners, cutting_width, overlap, heading)
         self.current_strip_index = 0
+
+        # Load clear zones for radio traffic evacuation
+        self.clear_zones = get_clear_zones(runway)
+        if self.clear_zones:
+            self.get_logger().info(
+                f"Loaded {len(self.clear_zones)} clear zones: "
+                f"{[z['name'] for z in self.clear_zones]}"
+            )
+        else:
+            self.get_logger().warn("No clear zones defined for this runway")
 
         stats = compute_strip_stats(corners, cutting_width, overlap)
         self.get_logger().info(
@@ -149,6 +168,85 @@ class ToolpathNode(Node):
 
         return response
 
+    def clear_zones_callback(self, request, response):
+        """Service callback returning clear zone data as JSON."""
+        import json
+        if self.clear_zones:
+            response.success = True
+            response.message = json.dumps([
+                {"name": z["name"], "centroid": list(z["centroid"])}
+                for z in self.clear_zones
+            ])
+        else:
+            response.success = False
+            response.message = "No clear zones loaded"
+        return response
+
+    def nearest_clear_zone(self, lat: float, lon: float) -> dict | None:
+        """Find the nearest clear zone centroid to a given lat/lon.
+
+        Uses simple Euclidean distance on lat/lon (sufficient for ~1 km scale).
+
+        Returns:
+            Clear zone dict with 'name', 'vertices', 'centroid', or None.
+        """
+        if not self.clear_zones:
+            return None
+
+        best = None
+        best_dist = float("inf")
+        for zone in self.clear_zones:
+            clat, clon = zone["centroid"]
+            dist = math.sqrt((lat - clat) ** 2 + (lon - clon) ** 2)
+            if dist < best_dist:
+                best_dist = dist
+                best = zone
+        return best
+
+    def publish_clear_zone_markers(self):
+        """Publish clear zone polygons as visualization markers."""
+        if not self.clear_zones:
+            return
+
+        markers = MarkerArray()
+        now = self.get_clock().now().to_msg()
+
+        for i, zone in enumerate(self.clear_zones):
+            # Polygon outline
+            marker = Marker()
+            marker.header = Header(frame_id="map", stamp=now)
+            marker.ns = "clear_zones"
+            marker.id = i
+            marker.type = Marker.LINE_STRIP
+            marker.action = Marker.ADD
+            marker.scale.x = 0.5
+            marker.color = ColorRGBA(r=0.0, g=0.5, b=1.0, a=0.8)
+
+            from geometry_msgs.msg import Point
+            for lat, lon in zone["vertices"]:
+                marker.points.append(Point(x=lat, y=lon, z=0.0))
+            # Close the polygon
+            first = zone["vertices"][0]
+            marker.points.append(Point(x=first[0], y=first[1], z=0.0))
+            markers.markers.append(marker)
+
+            # Label at centroid
+            label = Marker()
+            label.header = Header(frame_id="map", stamp=now)
+            label.ns = "clear_zone_labels"
+            label.id = i
+            label.type = Marker.TEXT_VIEW_FACING
+            label.action = Marker.ADD
+            label.scale.z = 3.0
+            label.color = ColorRGBA(r=1.0, g=1.0, b=1.0, a=1.0)
+            clat, clon = zone["centroid"]
+            label.pose.position = Point(x=clat, y=clon, z=5.0)
+            label.pose.orientation.w = 1.0
+            label.text = zone["name"]
+            markers.markers.append(label)
+
+        self.clear_zone_marker_pub.publish(markers)
+
     def republish(self):
         """Periodic republish for late-joining subscribers."""
         if self.strips:
@@ -159,6 +257,7 @@ class ToolpathNode(Node):
         self.publish_full_path()
         self.publish_current_strip()
         self.publish_markers()
+        self.publish_clear_zone_markers()
 
     def publish_full_path(self):
         """Publish all strips as a single Path (for visualization)."""

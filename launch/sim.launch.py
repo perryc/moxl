@@ -149,6 +149,18 @@ def generate_launch_description():
                 'use_sim_time': True,
             }],
         ),
+        Node(
+            package='toolpath_planner',
+            executable='sdr_detector_node',
+            name='sdr_detector',
+            output='screen',
+            parameters=[{
+                'enabled': False,
+                'frequency_mhz': 122.8,
+                'quiet_period_sec': 300.0,
+                'use_sim_time': True,
+            }],
+        ),
     ]
 
     return LaunchDescription([

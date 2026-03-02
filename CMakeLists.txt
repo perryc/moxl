@@ -39,6 +39,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
         "src/msg/EngineStatus.msg"
         "src/msg/BladeStatus.msg"
         "src/msg/MissionStatus.msg"
+        "src/msg/RadioDetection.msg"
         "src/srv/StartEngine.srv"
         "src/srv/StopEngine.srv"
         "src/srv/SetBlades.srv"

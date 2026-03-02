@@ -39,6 +39,7 @@ A Swisher 60" towable rough-cut mower deck, converted from tow-behind to self-pr
 - **Drive system**: Two electric wheelchair motors on 13" turf tires, differential steering
 - **Motor controllers**: 2x BTS7960 43A dual H-bridge boards, 24V PWM, 3.3V logic compatible
 - **GPS**: FarmTRX RTK rover — NMEA0183 serial output, magnetometer heading (HDT), cm-level accuracy
+- **Radio**: RTL-SDR v3/v4 USB dongle — monitors 122.8 MHz CTAF for aviation traffic
 - **Computer**: Raspberry Pi 4 running ROS2 Jazzy
 - **Power**: 2x 12V lead-acid batteries in series (24V drive, 12V center tap for starter and Pi)
 - **Charging**: 24V alternator belt-driven off the blade pulley — charges while mowing
@@ -91,7 +92,7 @@ Full wiring harness diagram in [WireViz format](docs/wiring/moxl_harness.yml) �
 │ publisher│ driver   │ _node    │          │ blade_controller    │
 │          │          │          │ planner  │ mission_node        │
 │ controller         │ ekf_odom │ _server  │ safety_monitor      │
-│ _manager │          │          │          │                     │
+│ _manager │          │          │          │ sdr_detector        │
 │          │ /gps/fix │ ekf_map  │ bt_nav   │                     │
 │ diff_    │ /heading │          │          │                     │
 │ drive_   │          │ navsat_  │ velocity │                     │
@@ -122,8 +123,9 @@ Full wiring harness diagram in [WireViz format](docs/wiring/moxl_harness.yml) �
 - `toolpath_node` — generates parallel boustrophedon mowing strips from RTK-surveyed runway corners
 - `engine_controller_node` — engine start/stop services (stub — GPIO implementation pending)
 - `blade_controller_node` — blade engage/disengage services (stub — GPIO implementation pending)
-- `mission_node` — action server that sequences: preflight (start engine, engage blades) → mow all strips via Nav2 → return to park position → shutdown
+- `mission_node` — action server that sequences: preflight (start engine, engage blades) → mow all strips via Nav2 → return to park position → shutdown. Monitors CTAF radio activity and evacuates to a clear zone when traffic is detected.
 - `safety_monitor_node` — GPS fix watchdog (e-stop on RTK loss or timeout), future LiDAR obstacle detection
+- `sdr_detector_node` — RTL-SDR radio traffic detector monitoring 122.8 MHz CTAF. Detects AM voice transmissions via squelch, publishes radio activity status, and asserts e-stop when traffic is heard
 
 ### Custom ROS2 Interfaces
 
@@ -131,6 +133,7 @@ Full wiring harness diagram in [WireViz format](docs/wiring/moxl_harness.yml) �
 - `EngineStatus.msg` — engine state (OFF/CRANKING/RUNNING/ERROR), RPM, cylinder head temp, choke
 - `BladeStatus.msg` — blade state (DISENGAGED/ENGAGING/ENGAGED/DISENGAGING/ERROR)
 - `MissionStatus.msg` — mission state, current strip, progress percentage
+- `RadioDetection.msg` — SDR detection event: frequency, signal power, active flag, quiet duration
 
 **Services:**
 - `StartEngine.srv`, `StopEngine.srv` — engine control
@@ -151,6 +154,21 @@ The toolpath planner loads runway corner coordinates (RTK-surveyed at 0.02m accu
 6. Order strips in boustrophedon (alternating direction) pattern
 
 For CDS2 runway 11/29 (2246 ft x 78 ft) with a 60" deck and 15cm overlap: ~17 strips, ~12 km total mowing distance.
+
+### Aviation Radio Traffic Detector
+
+You can't land if a mower is on the runway. Aircraft use 122.8 MHz CTAF (Common Traffic Advisory Frequency) to announce their position in the traffic pattern. MOXL monitors this frequency with an RTL-SDR USB dongle (~$30) and automatically evacuates the runway when radio traffic is detected.
+
+**How it works:**
+
+1. `sdr_detector_node` tunes RTL-SDR to 122.8 MHz, reads IQ samples in a background thread, and computes signal power against a rolling noise floor
+2. When a transmission is detected (power > noise floor + squelch threshold), the node publishes `radio_active=True` and asserts e-stop to immediately halt the mower
+3. `mission_node` cancels the active FollowPath goal, navigates to the nearest pre-defined clear zone (off-runway safe area), and waits
+4. After 5 minutes of radio silence, the mower resumes mowing from where it left off
+
+**Clear zones** are defined per-runway in `CDS2.json` — three safe parking areas (north apron, midfield west, south holdshort) where the mower can wait without blocking the runway. Vertices are placeholders until RTK-surveyed.
+
+**Fail-open design:** If the RTL-SDR hardware isn't connected or `pyrtlsdr` isn't installed, the detector logs a warning and publishes `radio_active=False` — mowing continues unblocked. The GPS safety monitor remains the hard backstop.
 
 ## Target Airstrip
 
@@ -203,7 +221,7 @@ moxl/
 │   ├── joystick.launch.py          # Manual teleop
 │   └── sim.launch.py               # Gazebo simulation
 ├── src/
-│   ├── msg/                         # EngineStatus, BladeStatus, MissionStatus
+│   ├── msg/                         # EngineStatus, BladeStatus, MissionStatus, RadioDetection
 │   ├── srv/                         # StartEngine, StopEngine, SetBlades
 │   ├── action/                      # MowMission
 │   ├── toolpath_planner/            # Python ROS2 package
@@ -217,7 +235,8 @@ moxl/
 │   │   │   ├── engine_controller_node.py # Engine control (stub)
 │   │   │   ├── blade_controller_node.py  # Blade control (stub)
 │   │   │   ├── mission_node.py      # Mission orchestrator
-│   │   │   └── safety_monitor_node.py # GPS watchdog + e-stop
+│   │   │   ├── safety_monitor_node.py # GPS watchdog + e-stop
+│   │   │   └── sdr_detector_node.py # RTL-SDR CTAF radio monitor
 │   │   └── test/                    # 31 unit tests
 │   └── lib/bts7960_hw_interface/    # C++ ros2_control plugin (TBD)
 ├── photos/                          # Build photos & engineering drawing
@@ -322,6 +341,7 @@ This is an active build. The software architecture is complete; hardware integra
 - [x] Wiring harness diagram (WireViz)
 - [x] Gazebo simulation — full autonomous mowing mission completes (14 strips, 5.4 km)
 - [x] Docker containerization — one command to run the full sim
+- [x] Aviation radio traffic detector — RTL-SDR monitors 122.8 MHz CTAF, auto-evacuates runway on traffic
 - [ ] BTS7960 GPIO driver (compile for Pi, wire motors)
 - [ ] Engine control GPIO (starter relay, choke servo, RPM sensor)
 - [ ] Blade engagement hardware (relay + belt actuator)

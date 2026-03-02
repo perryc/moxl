@@ -2,6 +2,7 @@
   "icao_code": "CDS2",
   "name": "Disley",
   "elevation_ft": 1854,
+  "ctaf_mhz": 122.8,
   "location": {
     "latitude": 50.63447131,
     "longitude": -105.03184237
@@ -71,7 +72,36 @@
             "gps_source": "BLE_RTK_FIXED"
           }
         ]
-      }
+      },
+      "clear_zones": [
+        {
+          "name": "north_apron",
+          "vertices": [
+            {"latitude": 50.63880, "longitude": -105.04070},
+            {"latitude": 50.63880, "longitude": -105.04030},
+            {"latitude": 50.63865, "longitude": -105.04030},
+            {"latitude": 50.63865, "longitude": -105.04070}
+          ]
+        },
+        {
+          "name": "midfield_west",
+          "vertices": [
+            {"latitude": 50.63460, "longitude": -105.03230},
+            {"latitude": 50.63460, "longitude": -105.03210},
+            {"latitude": 50.63440, "longitude": -105.03210},
+            {"latitude": 50.63440, "longitude": -105.03230}
+          ]
+        },
+        {
+          "name": "south_holdshort",
+          "vertices": [
+            {"latitude": 50.63295, "longitude": -105.03210},
+            {"latitude": 50.63295, "longitude": -105.03180},
+            {"latitude": 50.63280, "longitude": -105.03180},
+            {"latitude": 50.63280, "longitude": -105.03210}
+          ]
+        }
+      ]
     },
     {
       "designation": "17/35",

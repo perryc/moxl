@@ -31,13 +31,14 @@ from rclpy.node import Node
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point
 from geographic_msgs.msg import GeoPoint
+from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
-from moxl.msg import EngineStatus, BladeStatus, MissionStatus
+from moxl.msg import EngineStatus, BladeStatus, MissionStatus, RadioDetection
 from moxl.srv import StartEngine, StopEngine, SetBlades
 from moxl.action import MowMission
 
-from nav2_msgs.action import NavigateThroughPoses, FollowPath
+from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowPath
 from robot_localization.srv import FromLL
 
 
@@ -47,6 +48,7 @@ class MissionNode(Node):
 
         self.declare_parameter("park_lat", 50.637833)
         self.declare_parameter("park_lon", -105.038583)
+        self.declare_parameter("quiet_period_sec", 300.0)
 
         self.cb_group = ReentrantCallbackGroup()
 
@@ -59,6 +61,11 @@ class MissionNode(Node):
         self.blade_status = None
         self._goal_lock = threading.Lock()
         self._active_nav_goal: ClientGoalHandle | None = None
+        self._radio_active = False
+        self._radio_detection: RadioDetection | None = None
+        self._waypoint_resume_index = 0
+        self._evacuated = False  # True when mower has reached clear zone
+        self._clear_zones: list[dict] = []  # loaded from toolpath_node
 
         # Subscribers
         self.full_toolpath = None
@@ -80,6 +87,16 @@ class MissionNode(Node):
         self.create_subscription(
             BladeStatus, "moxl/blades/status",
             self._blade_status_cb, 10,
+            callback_group=self.cb_group,
+        )
+        self.create_subscription(
+            Bool, "/sdr/radio_active",
+            self._radio_active_cb, 10,
+            callback_group=self.cb_group,
+        )
+        self.create_subscription(
+            RadioDetection, "/sdr/detection",
+            self._radio_detection_cb, 10,
             callback_group=self.cb_group,
         )
 
@@ -109,6 +126,11 @@ class MissionNode(Node):
             FromLL, "/fromLL", callback_group=self.cb_group
         )
 
+        # Service client for clear zone data from toolpath_node
+        self.cli_clear_zones = self.create_client(
+            Trigger, "/moxl/toolpath/clear_zones", callback_group=self.cb_group
+        )
+
         # Nav2 action clients
         self._nav_client = rclpy.action.ActionClient(
             self, NavigateThroughPoses, "navigate_through_poses",
@@ -116,6 +138,10 @@ class MissionNode(Node):
         )
         self._follow_path_client = rclpy.action.ActionClient(
             self, FollowPath, "follow_path",
+            callback_group=self.cb_group,
+        )
+        self._nav_to_pose_client = rclpy.action.ActionClient(
+            self, NavigateToPose, "navigate_to_pose",
             callback_group=self.cb_group,
         )
 
@@ -146,6 +172,12 @@ class MissionNode(Node):
     def _blade_status_cb(self, msg: BladeStatus):
         self.blade_status = msg
 
+    def _radio_active_cb(self, msg: Bool):
+        self._radio_active = msg.data
+
+    def _radio_detection_cb(self, msg: RadioDetection):
+        self._radio_detection = msg
+
     # ── Status publishing ────────────────────────────────────────────
 
     def _publish_status(self):
@@ -172,6 +204,9 @@ class MissionNode(Node):
             MissionStatus.ERROR: "Error",
             MissionStatus.PAUSED: "Paused",
         }
+        # State 8 = EVACUATING (radio traffic)
+        if state == 8:
+            return "Evacuating runway"
         return names.get(state, "Unknown")
 
     # ── Action server callbacks ──────────────────────────────────────
@@ -244,6 +279,9 @@ class MissionNode(Node):
                 f"{len(self.full_toolpath.poses)} waypoints"
             )
 
+            # ── LOAD CLEAR ZONES ──────────────────────────────────
+            await self._load_clear_zones()
+
             # ── MOWING ───────────────────────────────────────────
             self.state = MissionStatus.MOWING
             self.current_strip = 1
@@ -265,16 +303,41 @@ class MissionNode(Node):
                 f"Sending {len(map_poses)} waypoints to Nav2 FollowPath"
             )
 
-            # Send toolpath directly to controller — bypasses planner
-            # (open field, no obstacles, pre-computed path)
-            nav_ok = await self._follow_path(map_poses)
-            if not nav_ok:
+            # Mow with radio evacuation support — will pause/resume
+            # if radio traffic is detected on CTAF
+            self._waypoint_resume_index = 0
+            while self._waypoint_resume_index < len(map_poses):
                 if goal_handle.is_cancel_requested:
                     return self._cancel(goal_handle, result)
-                return self._abort(
-                    goal_handle, result,
-                    "Navigation failed during mowing"
+
+                remaining = map_poses[self._waypoint_resume_index:]
+                self.get_logger().info(
+                    f"Following path from waypoint "
+                    f"{self._waypoint_resume_index}/{len(map_poses)}"
                 )
+
+                # Send remaining path to controller
+                nav_ok = await self._follow_path_with_radio_check(
+                    remaining, goal_handle, feedback
+                )
+
+                if nav_ok:
+                    # Completed all remaining waypoints
+                    break
+
+                if goal_handle.is_cancel_requested:
+                    return self._cancel(goal_handle, result)
+
+                # If we get here due to radio evacuation, the resume index
+                # has been updated — loop will continue from where we left off.
+                # If navigation truly failed (not radio), abort.
+                if not self._radio_active and not self._evacuated:
+                    return self._abort(
+                        goal_handle, result,
+                        "Navigation failed during mowing"
+                    )
+
+                self._evacuated = False
 
             self.current_strip = self.total_strips
 
@@ -310,6 +373,189 @@ class MissionNode(Node):
         except Exception as e:
             self.get_logger().error(f"Mission exception: {e}")
             return self._abort(goal_handle, result, str(e))
+
+    # ── Radio evacuation ────────────────────────────────────────────
+
+    async def _load_clear_zones(self):
+        """Load clear zone centroids from toolpath_node."""
+        import json
+        if not self.cli_clear_zones.wait_for_service(timeout_sec=5.0):
+            self.get_logger().warn("Clear zones service not available")
+            return
+        resp = await self.cli_clear_zones.call_async(Trigger.Request())
+        if resp.success:
+            self._clear_zones = json.loads(resp.message)
+            self.get_logger().info(
+                f"Loaded {len(self._clear_zones)} clear zones for evacuation"
+            )
+        else:
+            self.get_logger().warn("No clear zones available for radio evacuation")
+
+    async def _follow_path_with_radio_check(
+        self, poses, goal_handle, feedback
+    ) -> bool:
+        """Follow path but cancel and evacuate if radio becomes active.
+
+        Returns True if path completed, False if interrupted by radio or error.
+        """
+        if not self._follow_path_client.wait_for_server(timeout_sec=10.0):
+            self.get_logger().error("Nav2 follow_path not available")
+            return False
+
+        path_msg = Path()
+        path_msg.header.frame_id = "map"
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.poses = poses
+
+        goal = FollowPath.Goal()
+        goal.path = path_msg
+        goal.controller_id = "FollowPath"
+        goal.goal_checker_id = "general_goal_checker"
+
+        send_goal_future = self._follow_path_client.send_goal_async(goal)
+        goal_handle_nav = await send_goal_future
+
+        if not goal_handle_nav.accepted:
+            self.get_logger().error("FollowPath goal rejected")
+            return False
+
+        with self._goal_lock:
+            self._active_nav_goal = goal_handle_nav
+
+        result_future = goal_handle_nav.get_result_async()
+
+        # Poll for completion or radio detection
+        while not result_future.done():
+            await self._sleep(0.2)
+
+            if self._radio_active and self.state == MissionStatus.MOWING:
+                self.get_logger().warn(
+                    "Radio traffic detected — cancelling mowing, evacuating!"
+                )
+                # Cancel the active navigation
+                with self._goal_lock:
+                    if self._active_nav_goal is not None:
+                        self._active_nav_goal.cancel_goal_async()
+                        self._active_nav_goal = None
+
+                # Estimate resume index: fraction of remaining path completed
+                # (approximate — we'll resume from nearest waypoint)
+                await self._evacuate_to_clear_zone()
+                await self._wait_for_quiet(goal_handle, feedback)
+
+                # Resume mowing from where we left off
+                self.state = MissionStatus.MOWING
+                self._send_feedback(goal_handle, feedback)
+                return False  # Signal to retry from resume index
+
+            if goal_handle.is_cancel_requested:
+                with self._goal_lock:
+                    if self._active_nav_goal is not None:
+                        self._active_nav_goal.cancel_goal_async()
+                        self._active_nav_goal = None
+                return False
+
+        with self._goal_lock:
+            self._active_nav_goal = None
+
+        result = result_future.result()
+        if result.status == 4:  # STATUS_SUCCEEDED
+            self._waypoint_resume_index = len(poses)  # all done
+            return True
+        return False
+
+    async def _evacuate_to_clear_zone(self):
+        """Navigate to the nearest clear zone centroid."""
+        self.state = 8  # EVACUATING
+        self._evacuated = True
+
+        if not self._clear_zones:
+            self.get_logger().warn(
+                "No clear zones configured — stopping in place"
+            )
+            return
+
+        # Get current GPS position from the toolpath poses
+        # Use park position as rough fallback for nearest-zone calculation
+        park_lat = self.get_parameter("park_lat").value
+        park_lon = self.get_parameter("park_lon").value
+
+        # Find nearest clear zone
+        best = None
+        best_dist = float("inf")
+        for zone in self._clear_zones:
+            clat, clon = zone["centroid"]
+            dist = math.sqrt((park_lat - clat) ** 2 + (park_lon - clon) ** 2)
+            if dist < best_dist:
+                best_dist = dist
+                best = zone
+
+        if best is None:
+            self.get_logger().error("Could not determine nearest clear zone")
+            return
+
+        clat, clon = best["centroid"]
+        self.get_logger().info(
+            f"Evacuating to clear zone '{best['name']}' "
+            f"at ({clat:.6f}, {clon:.6f})"
+        )
+
+        # Navigate to clear zone centroid
+        target = await self._latlon_to_map(clat, clon)
+        if target:
+            await self._navigate_to_pose(target)
+
+        self.get_logger().info(f"Arrived at clear zone '{best['name']}'")
+
+    async def _wait_for_quiet(self, goal_handle, feedback):
+        """Wait until radio has been quiet for quiet_period_sec."""
+        quiet_period = self.get_parameter("quiet_period_sec").value
+        self.state = MissionStatus.PAUSED
+        self._send_feedback(goal_handle, feedback)
+
+        self.get_logger().info(
+            f"Waiting for {quiet_period:.0f}s of radio silence before resuming"
+        )
+
+        while True:
+            await self._sleep(1.0)
+
+            if goal_handle.is_cancel_requested:
+                return
+
+            if self._radio_detection is not None:
+                quiet = self._radio_detection.quiet_duration_sec
+            elif not self._radio_active:
+                # No detection messages yet but radio isn't active — count up
+                quiet = quiet_period  # assume quiet
+            else:
+                quiet = 0.0
+
+            if quiet >= quiet_period:
+                self.get_logger().info(
+                    f"Radio quiet for {quiet:.0f}s — resuming mission"
+                )
+                return
+
+    async def _navigate_to_pose(self, pose: PoseStamped) -> bool:
+        """Send a single pose to Nav2 NavigateToPose and wait."""
+        if not self._nav_to_pose_client.wait_for_server(timeout_sec=10.0):
+            self.get_logger().error("Nav2 navigate_to_pose not available")
+            return False
+
+        goal = NavigateToPose.Goal()
+        goal.pose = pose
+
+        send_goal_future = self._nav_to_pose_client.send_goal_async(goal)
+        goal_handle = await send_goal_future
+
+        if not goal_handle.accepted:
+            self.get_logger().error("NavigateToPose goal rejected")
+            return False
+
+        result_future = goal_handle.get_result_async()
+        result = await result_future
+        return result.status == 4  # STATUS_SUCCEEDED
 
     # ── Helper methods ───────────────────────────────────────────────
 
