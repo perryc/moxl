@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="imu">
+    <!-- IMU TF frame — needed by robot_localization -->
     <joint name="imu_joint" type="fixed">
         <parent link="base_link"/>
         <child link="imu"/>
@@ -7,18 +8,25 @@
     </joint>
 
     <link name="imu">
+        <visual>
+            <geometry>
+                <box size="0.02 0.02 0.005"/>
+            </geometry>
+            <material name="imu_grey">
+                <color rgba="0.4 0.4 0.4 1"/>
+            </material>
+        </visual>
     </link>
 
-    <gazebo reference="imu">
-        <sensor name="imu" type="imu">
+    <!-- Sensor attached to base_link so it survives URDF→SDF fixed-joint merging.
+         The imu link above still provides the TF frame for robot_localization. -->
+    <gazebo reference="base_link">
+        <sensor name="imu_sensor" type="imu">
             <gz_frame_id>imu</gz_frame_id>
-            <!-- not possible to disable orientation via SDF, we will skip it during fusion-->
             <always_on>1</always_on>
             <update_rate>50</update_rate>
-            <visualize>true</visualize>
             <topic>imu/data_raw</topic>
+            <pose>${robot['imu']['chip']['offset'][0]} ${robot['imu']['chip']['offset'][1]} ${robot['imu']['chip']['offset'][2]} 0 0 0</pose>
         </sensor>
-
-        <material>Gazebo/Red</material>
     </gazebo>
 </robot>

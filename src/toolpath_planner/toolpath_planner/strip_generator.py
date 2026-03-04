@@ -1,59 +1,31 @@
-"""Generate mowing toolpath with headland-first pattern.
+"""Generate mowing toolpath as a CCW inward spiral.
 
-The pattern follows standard agricultural practice:
-1. Perimeter pass — mow around the full rectangle edge
-2. Headland passes — two cross-cuts at each short end (turning room)
-3. Main strips — parallel end-to-end cuts with U-turns inside headlands
+The mower discharges grass to the right, so a counter-clockwise spiral
+keeps the discharge side facing inward toward already-cut grass.
 
-All waypoints are densified (every ~5m) and returned as a single
+Algorithm:
+1. Start at the outermost ring (polygon buffered inward by half a cutting width)
+2. Progressively buffer inward by the effective step (cutting_width − overlap)
+3. Each ring is oriented CCW and rotated so its start vertex is nearest the
+   previous ring's end — producing a continuous path with short transitions.
+
+All waypoints are densified (every ~5 m) and returned as a single
 continuous path for Nav2 to follow.
 """
 
 import math
 import numpy as np
-from shapely.geometry import Polygon, LineString, MultiLineString
+from shapely.geometry import Polygon
 
 from .coordinate_utils import latlon_to_utm, utm_to_latlon
 
 
-WAYPOINT_SPACING = 5.0  # meters between waypoints
+WAYPOINT_SPACING = 1.5  # meters between waypoints (dense for smooth controller tracking)
 
 
 def corners_to_utm(corners_latlon: list[tuple[float, float]]) -> list[tuple[float, float]]:
     """Convert a list of (lat, lon) corner points to UTM (easting, northing)."""
     return [latlon_to_utm(lat, lon) for lat, lon in corners_latlon]
-
-
-def compute_heading_from_polygon(corners_utm: list[tuple[float, float]]) -> float:
-    """Compute the runway heading from the polygon shape.
-
-    Assumes the polygon is roughly rectangular with 4 corners.
-    The heading is along the longer axis of the rectangle.
-
-    Returns:
-        Heading in radians, measured from UTM north (Y-axis), clockwise.
-        This matches the aviation convention (0=North, 90=East).
-    """
-    pts = np.array(corners_utm)
-
-    mid_12 = (pts[0] + pts[1]) / 2
-    mid_34 = (pts[2] + pts[3]) / 2
-    mid_14 = (pts[0] + pts[3]) / 2
-    mid_23 = (pts[1] + pts[2]) / 2
-
-    axis_a = mid_34 - mid_12
-    axis_b = mid_23 - mid_14
-
-    if np.linalg.norm(axis_a) >= np.linalg.norm(axis_b):
-        heading_vec = axis_a
-    else:
-        heading_vec = axis_b
-
-    heading_rad = math.atan2(heading_vec[0], heading_vec[1])
-    if heading_rad < 0:
-        heading_rad += 2 * math.pi
-
-    return heading_rad
 
 
 def _densify(p0, p1, spacing=WAYPOINT_SPACING):
@@ -67,63 +39,71 @@ def _densify(p0, p1, spacing=WAYPOINT_SPACING):
             for t in range(n_pts)]
 
 
-def _clip_line_to_polygon(p0, p1, polygon):
-    """Clip a line segment to a polygon, return list of (e, n) tuples or empty."""
-    line = LineString([p0, p1])
-    clipped = polygon.intersection(line)
-    if clipped.is_empty:
-        return []
-    if isinstance(clipped, LineString):
-        return list(clipped.coords)
-    if isinstance(clipped, MultiLineString):
-        # Return longest segment
-        best = max(clipped.geoms, key=lambda g: g.length)
-        return list(best.coords)
-    return []
+def _ensure_ccw(coords: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Ensure a closed ring is ordered counter-clockwise (shoelace test).
+
+    If the signed area is negative (CW), the ring is reversed.
+    The returned ring is always closed (first == last).
+    """
+    # Drop closing vertex for the shoelace sum
+    ring = coords if coords[0] != coords[-1] else coords[:-1]
+    signed_area = sum(
+        x0 * y1 - x1 * y0
+        for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1])
+    )
+    if signed_area < 0:
+        ring = list(reversed(ring))
+    # Re-close the ring
+    return ring + [ring[0]]
+
+
+def _rotate_ring_to_nearest(
+    coords: list[tuple[float, float]],
+    target: tuple[float, float],
+) -> list[tuple[float, float]]:
+    """Rotate a closed ring so the vertex nearest *target* comes first.
+
+    The ring must be closed (first == last). The returned ring is also closed.
+    """
+    # Work with the open ring (drop closing duplicate)
+    ring = coords[:-1]
+    tx, ty = target
+    best_idx = 0
+    best_dist = float("inf")
+    for i, (x, y) in enumerate(ring):
+        d = (x - tx) ** 2 + (y - ty) ** 2
+        if d < best_dist:
+            best_dist = d
+            best_idx = i
+    rotated = ring[best_idx:] + ring[:best_idx]
+    return rotated + [rotated[0]]
 
 
 def generate_strips(
     corners_latlon: list[tuple[float, float]],
     cutting_width: float,
     overlap: float = 0.0,
-    heading_override_deg: float | None = None,
+    start_latlon: tuple[float, float] | None = None,
 ) -> list[list[tuple[float, float]]]:
-    """Generate mowing toolpath with headland-first pattern.
-
-    Pattern:
-        1. Perimeter pass (around the full rectangle)
-        2. Two headland passes at each short end
-        3. Main parallel strips with boustrophedon ordering
+    """Generate a CCW inward-spiral mowing toolpath.
 
     Args:
-        corners_latlon: List of 4 (lat, lon) tuples defining the runway polygon.
+        corners_latlon: List of (lat, lon) tuples defining the mowing polygon.
         cutting_width: Mower cutting width in meters.
-        overlap: Overlap between adjacent strips in meters.
-        heading_override_deg: Optional heading override in degrees true from north.
+        overlap: Overlap between adjacent passes in meters.
+        start_latlon: Optional (lat, lon) for preferred start position.
+            The outermost ring is rotated so the nearest vertex to this
+            point comes first.
 
     Returns:
-        List of strips, where each strip is a list of (lat, lon) waypoints.
-        The first strip is the perimeter, followed by headlands, then main strips.
-        Strips are densified with waypoints every ~5m.
+        List of rings, where each ring is a list of (lat, lon) waypoints.
+        Rings proceed from outermost to innermost, all oriented CCW.
+        Waypoints are densified with points every ~5 m.
     """
     corners_utm = corners_to_utm(corners_latlon)
     polygon = Polygon(corners_utm)
     if not polygon.is_valid:
         polygon = polygon.convex_hull
-
-    if heading_override_deg is not None:
-        heading_rad = math.radians(heading_override_deg)
-    else:
-        heading_rad = compute_heading_from_polygon(corners_utm)
-
-    heading_vec = np.array([math.sin(heading_rad), math.cos(heading_rad)])
-    cross_vec = np.array([math.cos(heading_rad), -math.sin(heading_rad)])
-
-    pts = np.array(corners_utm)
-    cross_proj = pts @ cross_vec
-    heading_proj = pts @ heading_vec
-    cross_min, cross_max = cross_proj.min(), cross_proj.max()
-    heading_min, heading_max = heading_proj.min(), heading_proj.max()
 
     effective_step = cutting_width - overlap
     if effective_step <= 0:
@@ -131,112 +111,56 @@ def generate_strips(
             f"cutting_width ({cutting_width}) must be greater than overlap ({overlap})"
         )
 
-    # Headland depth: 2 passes at each end
-    headland_depth = 2 * effective_step
+    # Convert start position to UTM if provided
+    start_utm = None
+    if start_latlon is not None:
+        start_utm = latlon_to_utm(*start_latlon)
 
-    all_strips = []
+    all_rings: list[list[tuple[float, float]]] = []
+    prev_end: tuple[float, float] | None = start_utm
 
-    # ── 1. PERIMETER PASS ────────────────────────────────────────
-    # Inset the polygon by half a cutting width so the mower edge
-    # aligns with the boundary, then trace the perimeter
-    inset = polygon.buffer(-cutting_width / 2)
-    if not inset.is_empty and inset.geom_type == 'Polygon':
-        perim_coords = list(inset.exterior.coords)
-        # Densify the perimeter
-        dense_perim = []
-        for i in range(len(perim_coords) - 1):
-            pts_seg = _densify(perim_coords[i], perim_coords[i + 1])
-            if dense_perim:
-                dense_perim.extend(pts_seg[1:])  # skip duplicate junction point
+    ring_index = 0
+    while True:
+        inset = cutting_width / 2 + ring_index * effective_step
+        shrunk = polygon.buffer(-inset)
+
+        if shrunk.is_empty or shrunk.area < 0.1:
+            break
+
+        # If buffer returned a MultiPolygon, take the largest piece
+        if shrunk.geom_type == "MultiPolygon":
+            shrunk = max(shrunk.geoms, key=lambda g: g.area)
+
+        if shrunk.geom_type != "Polygon":
+            break
+
+        coords = list(shrunk.exterior.coords)
+        coords = _ensure_ccw(coords)
+
+        # Rotate so nearest vertex to previous ring end comes first
+        if prev_end is not None:
+            coords = _rotate_ring_to_nearest(coords, prev_end)
+
+        # Densify the ring
+        dense_ring: list[tuple[float, float]] = []
+        for i in range(len(coords) - 1):
+            pts_seg = _densify(coords[i], coords[i + 1])
+            if dense_ring:
+                dense_ring.extend(pts_seg[1:])
             else:
-                dense_perim.extend(pts_seg)
-        all_strips.append(dense_perim)
+                dense_ring.extend(pts_seg)
 
-    # ── 2. HEADLAND PASSES ───────────────────────────────────────
-    # Two cross-cuts at each short end, just inside the perimeter
-    line_margin = 50.0
-
-    for end_sign, end_label in [(1, "far"), (-1, "near")]:
-        # "far" end = heading_max, "near" end = heading_min
-        if end_sign == 1:
-            h_base = heading_max
-        else:
-            h_base = heading_min
-
-        for pass_num in range(2):
-            # Offset inward from the end
-            h_offset = h_base - end_sign * (cutting_width / 2 + pass_num * effective_step)
-            # Cross-track line at this heading position
-            p0 = heading_vec * h_offset + cross_vec * (cross_min - line_margin)
-            p1 = heading_vec * h_offset + cross_vec * (cross_max + line_margin)
-            coords = _clip_line_to_polygon(p0, p1, polygon)
-            if len(coords) >= 2:
-                dense = _densify(coords[0], coords[-1])
-                all_strips.append(dense)
-
-    # Reverse every other headland strip for continuous path
-    for i in range(1, len(all_strips)):
-        if i % 2 == 0:
-            all_strips[i] = list(reversed(all_strips[i]))
-
-    # ── 3. MAIN PARALLEL STRIPS ──────────────────────────────────
-    # Run between the headlands, stepping across the width
-    main_heading_min = heading_min + headland_depth
-    main_heading_max = heading_max - headland_depth
-
-    start_offset = cross_min + cutting_width / 2
-    end_offset = cross_max - cutting_width / 2
-
-    main_strips = []
-    offset = start_offset
-    while offset <= end_offset + 0.001:
-        center = cross_vec * offset
-        p0 = center + heading_vec * (main_heading_min - line_margin)
-        p1 = center + heading_vec * (main_heading_max + line_margin)
-
-        # Clip to the polygon (strips still bounded by runway edges)
-        line = LineString([p0, p1])
-        clipped = polygon.intersection(line)
-
-        coords = []
-        if isinstance(clipped, LineString) and not clipped.is_empty:
-            coords = list(clipped.coords)
-        elif isinstance(clipped, MultiLineString):
-            best = max(clipped.geoms, key=lambda g: g.length)
-            coords = list(best.coords)
-
-        if len(coords) >= 2:
-            # Shorten to headland boundaries
-            c0, c1 = np.array(coords[0]), np.array(coords[-1])
-            h0 = float(c0 @ heading_vec)
-            h1 = float(c1 @ heading_vec)
-            # Clamp to headland-inset range
-            if h0 < main_heading_min:
-                t = (main_heading_min - h0) / (h1 - h0) if h1 != h0 else 0
-                c0 = c0 + t * (c1 - c0)
-            if h1 > main_heading_max:
-                t = (main_heading_max - h0) / (h1 - h0) if h1 != h0 else 1
-                c1 = c0 + t * (np.array(coords[-1]) - np.array(coords[0]))
-
-            dense = _densify(tuple(c0), tuple(c1))
-            main_strips.append(dense)
-
-        offset += effective_step
-
-    # Boustrophedon ordering for main strips
-    for i in range(len(main_strips)):
-        if i % 2 == 1:
-            main_strips[i] = list(reversed(main_strips[i]))
-
-    all_strips.extend(main_strips)
+        prev_end = dense_ring[-1]
+        all_rings.append(dense_ring)
+        ring_index += 1
 
     # Convert back to WGS84
-    strips_latlon = []
-    for strip in all_strips:
-        strip_wgs = [utm_to_latlon(e, n) for e, n in strip]
-        strips_latlon.append(strip_wgs)
+    rings_latlon = []
+    for ring in all_rings:
+        ring_wgs = [utm_to_latlon(e, n) for e, n in ring]
+        rings_latlon.append(ring_wgs)
 
-    return strips_latlon
+    return rings_latlon
 
 
 def compute_strip_stats(
@@ -244,34 +168,38 @@ def compute_strip_stats(
     cutting_width: float,
     overlap: float = 0.0,
 ) -> dict:
-    """Compute statistics about the mowing plan without generating full strips."""
+    """Compute statistics about the spiral mowing plan."""
     corners_utm = corners_to_utm(corners_latlon)
     polygon = Polygon(corners_utm)
     if not polygon.is_valid:
         polygon = polygon.convex_hull
 
-    heading_rad = compute_heading_from_polygon(corners_utm)
-    heading_vec = np.array([math.sin(heading_rad), math.cos(heading_rad)])
-    cross_vec = np.array([math.cos(heading_rad), -math.sin(heading_rad)])
-
-    pts = np.array(corners_utm)
-    cross_projections = pts @ cross_vec
-    heading_projections = pts @ heading_vec
-
-    runway_width = cross_projections.max() - cross_projections.min()
-    runway_length = heading_projections.max() - heading_projections.min()
-
     effective_step = cutting_width - overlap
-    strip_count = max(1, int(math.ceil(
-        (runway_width - cutting_width) / effective_step
-    )) + 1)
+
+    ring_count = 0
+    total_perimeter = 0.0
+
+    ring_index = 0
+    while True:
+        inset = cutting_width / 2 + ring_index * effective_step
+        shrunk = polygon.buffer(-inset)
+
+        if shrunk.is_empty or shrunk.area < 0.1:
+            break
+
+        if shrunk.geom_type == "MultiPolygon":
+            shrunk = max(shrunk.geoms, key=lambda g: g.area)
+
+        if shrunk.geom_type != "Polygon":
+            break
+
+        ring_count += 1
+        total_perimeter += shrunk.exterior.length
+        ring_index += 1
 
     return {
-        "strip_count": strip_count,
+        "ring_count": ring_count,
         "effective_step_m": effective_step,
         "polygon_area_m2": polygon.area,
-        "runway_width_m": runway_width,
-        "runway_length_m": runway_length,
-        "total_mowing_distance_m": strip_count * runway_length,
-        "heading_deg": math.degrees(heading_rad),
+        "total_mowing_distance_m": total_perimeter,
     }

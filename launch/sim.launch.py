@@ -37,6 +37,13 @@ def generate_launch_description():
         remappings=[('/cmd_vel_out', '/diff_drive_base_controller/cmd_vel')],
     )
 
+    # Park position: ~30m north of runway 11/29 north edge
+    # ENU (0, 211) → GPS (50.63640, -105.03180), facing south toward runway
+    park_lat = 50.63640
+    park_lon = -105.03180
+
+    # Spawn at park position relative to Gazebo origin (= navsat datum)
+    # Park GPS (50.63640, -105.03180) → ENU (2.8, 214.8) from datum
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
@@ -44,8 +51,8 @@ def generate_launch_description():
         arguments=['-topic', 'robot_description',
                    '-world', 'map',
                    '-name', 'moxl',
-                   '-z', '0.2',
-                   '-Y', '120.0'],
+                   '-x', '2.8', '-y', '214.8', '-z', '0.2',
+                   '-Y', '-1.5708'],
     )
 
     bridge = Node(
@@ -72,10 +79,35 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Kickstart diff_drive odom: open_loop controller won't publish odom
+    # until it receives at least one cmd_vel. Timestamp (0,0) bypasses
+    # the staleness check.
+    odom_kickstart = ExecuteProcess(
+        cmd=['ros2', 'topic', 'pub', '--once',
+             '/diff_drive_base_controller/cmd_vel',
+             'geometry_msgs/msg/TwistStamped',
+             '{header: {stamp: {sec: 0, nanosec: 0}}, twist: {linear: {x: 0.0}}}'],
+        output='screen'
+    )
+
+    # Relay Gazebo IMU → localization topics.
+    # heading_to_imu_node has no NMEA input in sim, so relay the Gazebo
+    # IMU to the topics the EKF and navsat_transform expect.
+    imu_relay = ExecuteProcess(
+        cmd=['python3',
+             os.path.join(get_package_share_directory(package_name),
+                          'scripts', 'sim_imu_relay.py'),
+             '--ros-args', '-p', 'use_sim_time:=true'],
+        output='screen'
+    )
+
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [get_package_share_directory(package_name), '/launch/localization.launch.py']),
-        launch_arguments={'use_sim_time': 'true'}.items(),
+        launch_arguments={
+            'use_sim_time': 'true',
+            'magnetic_declination_radians': '0.0',  # Gazebo IMU gives true heading
+        }.items(),
     )
 
     nav2 = IncludeLaunchDescription(
@@ -110,6 +142,8 @@ def generate_launch_description():
                 'runway': '11/29',
                 'cutting_width': 1.52,
                 'overlap': 0.05,
+                'start_lat': park_lat,
+                'start_lon': park_lon,
                 'use_sim_time': True,
             }],
         ),
@@ -133,8 +167,8 @@ def generate_launch_description():
             name='mission_node',
             output='screen',
             parameters=[{
-                'park_lat': 50.637833,
-                'park_lon': -105.038583,
+                'park_lat': park_lat,
+                'park_lon': park_lon,
                 'use_sim_time': True,
             }],
         ),
@@ -187,7 +221,14 @@ def generate_launch_description():
                 on_exit=[load_diff_controller],
             )
         ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_diff_controller,
+                on_exit=[odom_kickstart],
+            )
+        ),
         gz_spawn_entity,
+        imu_relay,
         localization,
         nav2,
         foxglove_bridge,

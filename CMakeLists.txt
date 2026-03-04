@@ -66,7 +66,7 @@ if (BUILD_TESTING)
 endif ()
 
 INSTALL(
-        DIRECTORY config launch description worlds maps
+        DIRECTORY config launch description worlds maps scripts
         DESTINATION share/${PROJECT_NAME}
 )
 

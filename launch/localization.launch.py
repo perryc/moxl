@@ -12,6 +12,7 @@ def generate_launch_description():
     package_path = get_package_share_directory("moxl")
 
     use_sim_time = LaunchConfiguration("use_sim_time")
+    magnetic_declination = LaunchConfiguration("magnetic_declination_radians")
 
     localization_params_path = os.path.join(
         package_path, "config", "robot_localization.yaml"
@@ -24,6 +25,11 @@ def generate_launch_description():
                 "use_sim_time",
                 default_value="false",
                 description="Use simulation (Gazebo) clock if true",
+            ),
+            DeclareLaunchArgument(
+                "magnetic_declination_radians",
+                default_value="0.1257",
+                description="Magnetic declination (0.0 for sim, real value for field)",
             ),
 
             # GPS heading bridge: QuaternionStamped → Imu
@@ -67,7 +73,10 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     localization_params_path,
-                    {"use_sim_time": use_sim_time},
+                    {
+                        "use_sim_time": use_sim_time,
+                        "magnetic_declination_radians": magnetic_declination,
+                    },
                 ],
                 remappings=[
                     ("odometry/filtered", "odometry/filtered/map"),

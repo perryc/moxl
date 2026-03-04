@@ -26,7 +26,11 @@ import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.time import Time
+
+import tf2_ros
 
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point
@@ -130,6 +134,10 @@ class MissionNode(Node):
         self.cli_clear_zones = self.create_client(
             Trigger, "/moxl/toolpath/clear_zones", callback_group=self.cb_group
         )
+
+        # TF buffer for checking frame readiness
+        self._tf_buffer = tf2_ros.Buffer()
+        self._tf_listener = tf2_ros.TransformListener(self._tf_buffer, self)
 
         # Nav2 action clients
         self._nav_client = rclpy.action.ActionClient(
@@ -292,12 +300,31 @@ class MissionNode(Node):
             )
 
             # Convert entire toolpath to map frame in one go
+            self.get_logger().info(
+                f"Converting {len(self.full_toolpath.poses)} waypoints "
+                f"from lat/lon to map frame..."
+            )
             map_poses = await self._convert_strip_to_map(self.full_toolpath)
             if not map_poses:
                 return self._abort(
                     goal_handle, result,
                     "Failed to convert toolpath to map frame"
                 )
+            self.get_logger().info(
+                f"First waypoint in map: ({map_poses[0].pose.position.x:.1f}, "
+                f"{map_poses[0].pose.position.y:.1f}), "
+                f"last: ({map_poses[-1].pose.position.x:.1f}, "
+                f"{map_poses[-1].pose.position.y:.1f})"
+            )
+
+            # Prepend a densified transit path from robot to first waypoint
+            # so the controller always has nearby poses to follow
+            transit = self._build_transit_path(map_poses[0])
+            if transit:
+                self.get_logger().info(
+                    f"Transit: {len(transit)} waypoints to reach toolpath start"
+                )
+                map_poses = transit + map_poses
 
             self.get_logger().info(
                 f"Sending {len(map_poses)} waypoints to Nav2 FollowPath"
@@ -402,10 +429,22 @@ class MissionNode(Node):
             self.get_logger().error("Nav2 follow_path not available")
             return False
 
+        # Wait for map→odom TF to be available before sending path
+        try:
+            self._tf_buffer.lookup_transform(
+                "odom", "map", Time(seconds=0), timeout=Duration(seconds=10)
+            )
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException) as e:
+            self.get_logger().error(f"TF not ready (map→odom): {e}")
+            return False
+
         path_msg = Path()
         path_msg.header.frame_id = "map"
-        path_msg.header.stamp = self.get_clock().now().to_msg()
-        path_msg.poses = poses
+        path_msg.header.stamp = Time(seconds=0).to_msg()  # latest TF available
+        for p in poses:
+            p.header.stamp = Time(seconds=0).to_msg()
+            p.header.frame_id = "map"
+            path_msg.poses.append(p)
 
         goal = FollowPath.Goal()
         goal.path = path_msg
@@ -459,6 +498,10 @@ class MissionNode(Node):
             self._active_nav_goal = None
 
         result = result_future.result()
+        self.get_logger().info(
+            f"FollowPath finished with status={result.status} "
+            f"(4=OK, 5=CANCELED, 6=ABORTED)"
+        )
         if result.status == 4:  # STATUS_SUCCEEDED
             self._waypoint_resume_index = len(poses)  # all done
             return True
@@ -663,7 +706,7 @@ class MissionNode(Node):
 
         pose = PoseStamped()
         pose.header.frame_id = "map"
-        pose.header.stamp = self.get_clock().now().to_msg()
+        pose.header.stamp = Time(seconds=0).to_msg()  # latest TF available
         pose.pose.position = resp.map_point
         pose.pose.orientation.w = 1.0
         return pose
@@ -696,6 +739,56 @@ class MissionNode(Node):
             map_poses[-1].pose.orientation = map_poses[-2].pose.orientation
 
         return map_poses
+
+    # ── Transit path ────────────────────────────────────────────────
+
+    def _build_transit_path(
+        self, target: PoseStamped, spacing: float = 1.5,
+    ) -> list[PoseStamped]:
+        """Build a densified straight-line path from the robot to *target*.
+
+        Returns a list of PoseStamped in the map frame, spaced every *spacing*
+        meters. Returns empty list if robot pose is unavailable or already
+        within *spacing* of the target.
+        """
+        # Get current robot pose in map frame via TF
+        try:
+            tf_msg = self._tf_buffer.lookup_transform(
+                "map", "base_link", Time(seconds=0),
+                timeout=Duration(seconds=5),
+            )
+        except Exception as e:
+            self.get_logger().warn(f"Cannot get robot pose for transit: {e}")
+            return []
+
+        rx = tf_msg.transform.translation.x
+        ry = tf_msg.transform.translation.y
+        tx = target.pose.position.x
+        ty = target.pose.position.y
+
+        dx, dy = tx - rx, ty - ry
+        dist = math.sqrt(dx * dx + dy * dy)
+        if dist < spacing:
+            return []  # already close enough
+
+        n_pts = max(2, int(math.ceil(dist / spacing)) + 1)
+        yaw = math.atan2(dy, dx)
+        oz = math.sin(yaw / 2.0)
+        ow = math.cos(yaw / 2.0)
+
+        poses: list[PoseStamped] = []
+        for i in range(n_pts):
+            frac = i / (n_pts - 1)
+            p = PoseStamped()
+            p.header.frame_id = "map"
+            p.header.stamp = Time(seconds=0).to_msg()
+            p.pose.position.x = rx + frac * dx
+            p.pose.position.y = ry + frac * dy
+            p.pose.position.z = 0.0
+            p.pose.orientation.z = oz
+            p.pose.orientation.w = ow
+            poses.append(p)
+        return poses
 
     # ── Nav2 integration ─────────────────────────────────────────────
 
@@ -739,7 +832,7 @@ class MissionNode(Node):
         # Build a nav_msgs/Path from the poses
         path_msg = Path()
         path_msg.header.frame_id = "map"
-        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.header.stamp = Time(seconds=0).to_msg()  # latest TF available
         path_msg.poses = poses
 
         goal = FollowPath.Goal()

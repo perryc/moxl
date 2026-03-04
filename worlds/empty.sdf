@@ -19,11 +19,12 @@
         </plugin>
 
         <!-- CDS2 airstrip — Disley, Saskatchewan -->
+        <!-- Origin MUST match navsat_transform datum for visual/toolpath alignment -->
         <spherical_coordinates>
             <surface_model>EARTH_WGS84</surface_model>
             <world_frame_orientation>ENU</world_frame_orientation>
-            <latitude_deg>50.6345</latitude_deg>
-            <longitude_deg>-105.0318</longitude_deg>
+            <latitude_deg>50.63447</latitude_deg>
+            <longitude_deg>-105.03184</longitude_deg>
             <elevation>566</elevation>
             <heading_deg>0</heading_deg>
         </spherical_coordinates>
@@ -72,36 +73,18 @@
             </link>
         </model>
 
-        <!-- CDS2 Runway 11/29 visual reference -->
-        <!-- In ENU frame relative to origin (50.6345, -105.0318): -->
-        <!-- Runway runs N-S from Y≈+180 to Y≈-184, X centered near 0 -->
-        <!-- Width ~24m, Length ~364m -->
+        <!-- CDS2 mowing polygon boundary (exact /fromLL positions)             -->
+        <!-- C1 (-13.25, 183.76)  C2 (6.31, 173.88)                            -->
+        <!-- C4 (-7.12, -176.78)  C3 (13.40, -180.20)                          -->
 
-        <!-- Runway strip — lighter green to distinguish from grass -->
-        <model name="runway_strip">
+        <!-- West edge: C1→C4 — length 360.6m, midpoint (-10.19, 3.49) -->
+        <model name="edge_west">
             <static>true</static>
-            <pose>-2 -2 0.005 0 0 0</pose>
+            <pose>-10.19 3.49 0.01 0 0 0.0170</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry>
-                        <box><size>24 370 0.005</size></box>
-                    </geometry>
-                    <material>
-                        <ambient>0.35 0.55 0.25 1</ambient>
-                        <diffuse>0.35 0.55 0.25 1</diffuse>
-                    </material>
-                </visual>
-            </link>
-        </model>
-
-        <!-- Threshold 11 (North end) marker — white line -->
-        <model name="threshold_11">
-            <static>true</static>
-            <pose>-2 180 0.01 0 0 0</pose>
-            <link name="link">
-                <visual name="visual">
-                    <geometry>
-                        <box><size>24 2 0.01</size></box>
+                        <box><size>0.4 360.6 0.01</size></box>
                     </geometry>
                     <material>
                         <ambient>0.9 0.9 0.9 1</ambient>
@@ -111,14 +94,14 @@
             </link>
         </model>
 
-        <!-- Threshold 29 (South end) marker — white line -->
-        <model name="threshold_29">
+        <!-- East edge: C2→C3 — length 354.2m, midpoint (9.86, -3.16) -->
+        <model name="edge_east">
             <static>true</static>
-            <pose>-2 -184 0.01 0 0 0</pose>
+            <pose>9.86 -3.16 0.01 0 0 0.0200</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry>
-                        <box><size>24 2 0.01</size></box>
+                        <box><size>0.4 354.2 0.01</size></box>
                     </geometry>
                     <material>
                         <ambient>0.9 0.9 0.9 1</ambient>
@@ -128,21 +111,97 @@
             </link>
         </model>
 
-        <!-- Center line — dashed effect with single line -->
-        <model name="centerline">
+        <!-- North edge: C1→C2 — length 21.9m, midpoint (-3.47, 178.82) -->
+        <!-- yaw = atan2(-dx, dy) for box Y-axis alignment; dx=19.56, dy=-9.88 -->
+        <model name="edge_north">
             <static>true</static>
-            <pose>-2 -2 0.008 0 0 0</pose>
+            <pose>-3.47 178.82 0.01 0 0 1.103</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry>
-                        <box><size>0.3 364 0.005</size></box>
+                        <box><size>0.4 21.9 0.01</size></box>
                     </geometry>
                     <material>
-                        <ambient>0.8 0.8 0.8 0.5</ambient>
-                        <diffuse>0.8 0.8 0.8 0.5</diffuse>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
                     </material>
                 </visual>
             </link>
         </model>
+
+        <!-- South edge: C4→C3 — length 20.8m, midpoint (3.14, -178.49) -->
+        <!-- yaw = atan2(-dx, dy) for box Y-axis alignment; dx=20.52, dy=-3.42 -->
+        <model name="edge_south">
+            <static>true</static>
+            <pose>3.14 -178.49 0.01 0 0 1.406</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.4 20.8 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Corner markers — bright red cubes at exact polygon corners -->
+        <model name="corner_c1_nw">
+            <static>true</static>
+            <pose>-13.25 183.76 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>1.0 0.0 0.0 1</ambient>
+                        <diffuse>1.0 0.0 0.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="corner_c2_ne">
+            <static>true</static>
+            <pose>6.31 173.88 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>1.0 0.0 0.0 1</ambient>
+                        <diffuse>1.0 0.0 0.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="corner_c3_se">
+            <static>true</static>
+            <pose>13.40 -180.20 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>1.0 0.0 0.0 1</ambient>
+                        <diffuse>1.0 0.0 0.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="corner_c4_sw">
+            <static>true</static>
+            <pose>-7.12 -176.78 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>1.0 0.0 0.0 1</ambient>
+                        <diffuse>1.0 0.0 0.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- No fill — SDF box can't represent the trapezoidal polygon.
+             Edge lines + corner markers are the authoritative boundary. -->
     </world>
 </sdf>

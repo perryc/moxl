@@ -21,6 +21,7 @@ diff_drive_base_controller:
     wheels_per_side: 1
 
     use_stamped_vel: true
+    cmd_vel_timeout: 999.0  # effectively disable staleness check — Gazebo clock drift causes stale timestamps
 
     # Open loop — no wheel encoders, GPS provides odometry
     open_loop: true

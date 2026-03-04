@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """ROS2 node that generates and publishes airstrip mowing toolpaths.
 
-Loads runway data from ppa_airports JSON, generates parallel mowing strips,
-and publishes them as nav_msgs/Path messages for Nav2 to follow.
+Loads runway data from ppa_airports JSON, generates a CCW inward-spiral
+toolpath, and publishes it as nav_msgs/Path messages for Nav2 to follow.
 
 Published topics:
-    /moxl/toolpath/all (nav_msgs/Path): Complete toolpath with all strips
-    /moxl/toolpath/current_strip (nav_msgs/Path): Currently active strip
+    /moxl/toolpath/all (nav_msgs/Path): Complete toolpath with all rings
+    /moxl/toolpath/current_strip (nav_msgs/Path): Currently active ring
     /moxl/toolpath/markers (visualization_msgs/MarkerArray): RViz visualization
 
 Services:
     /moxl/toolpath/generate (std_srvs/Trigger): Regenerate the toolpath
-    /moxl/toolpath/next_strip (std_srvs/Trigger): Advance to the next strip
+    /moxl/toolpath/next_strip (std_srvs/Trigger): Advance to the next ring
 
 Parameters:
     airstrip_file (str): Path to the airport JSON file
     runway (str): Runway designation (e.g., "11/29")
     cutting_width (float): Mower cutting width in meters
-    overlap (float): Overlap between strips in meters
+    overlap (float): Overlap between adjacent passes in meters
 """
 
 import math
@@ -46,7 +46,8 @@ class ToolpathNode(Node):
         self.declare_parameter("runway", "11/29")
         self.declare_parameter("cutting_width", 1.52)
         self.declare_parameter("overlap", 0.15)
-        self.declare_parameter("heading_override_deg", -1.0)  # -1 = auto-detect
+        self.declare_parameter("start_lat", float("nan"))
+        self.declare_parameter("start_lon", float("nan"))
 
         # State
         self.strips: list[list[tuple[float, float]]] = []
@@ -95,7 +96,6 @@ class ToolpathNode(Node):
         runway_designation = self.get_parameter("runway").value
         cutting_width = self.get_parameter("cutting_width").value
         overlap = self.get_parameter("overlap").value
-        heading_override = self.get_parameter("heading_override_deg").value
 
         if not airstrip_file:
             self.get_logger().error("airstrip_file parameter is empty")
@@ -109,9 +109,16 @@ class ToolpathNode(Node):
             self.get_logger().error(f"Failed to load airstrip data: {e}")
             return False
 
-        heading = heading_override if heading_override >= 0 else None
+        import math
+        start_lat = self.get_parameter("start_lat").value
+        start_lon = self.get_parameter("start_lon").value
+        start_latlon = None
+        if not (math.isnan(start_lat) or math.isnan(start_lon)):
+            start_latlon = (start_lat, start_lon)
 
-        self.strips = generate_strips(corners, cutting_width, overlap, heading)
+        self.strips = generate_strips(
+            corners, cutting_width, overlap, start_latlon=start_latlon,
+        )
         self.current_strip_index = 0
 
         # Load clear zones for radio traffic evacuation
@@ -126,10 +133,9 @@ class ToolpathNode(Node):
 
         stats = compute_strip_stats(corners, cutting_width, overlap)
         self.get_logger().info(
-            f"Generated {len(self.strips)} strips for {airport['icao_code']} "
+            f"Generated {stats['ring_count']} rings for {airport['icao_code']} "
             f"runway {runway_designation}: "
-            f"{stats['runway_length_m']:.0f}m x {stats['runway_width_m']:.0f}m, "
-            f"heading {stats['heading_deg']:.1f}°, "
+            f"area {stats['polygon_area_m2']:.0f} m², "
             f"total mowing distance {stats['total_mowing_distance_m']:.0f}m"
         )
 

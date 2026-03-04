@@ -61,6 +61,11 @@ gps:
     # TODO: verify actual offset from drive axle center (base_link)
     offset: [0.0, 0.0, 0.50] # m (centered, 0.5m above base_link)
 
+imu:
+  chip:
+    # FarmTRX magnetometer/IMU — built into the GPS puck
+    offset: [0.0, 0.0, 0.50] # m (co-located with GPS antenna)
+
 park:
   # GPS coordinates for the parking/home position
   # Set this to wherever you want the mower to return after completing a job

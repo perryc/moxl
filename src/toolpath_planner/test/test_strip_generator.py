@@ -1,4 +1,4 @@
-"""Tests for mowing strip generation using actual CDS2 runway data."""
+"""Tests for CCW inward-spiral mowing toolpath generation using actual CDS2 runway data."""
 
 import math
 import pytest
@@ -6,7 +6,6 @@ from shapely.geometry import Polygon, Point
 
 from toolpath_planner.strip_generator import (
     corners_to_utm,
-    compute_heading_from_polygon,
     generate_strips,
     compute_strip_stats,
 )
@@ -38,38 +37,17 @@ class TestCornersToUtm:
             assert isinstance(pt[1], float)
 
 
-class TestComputeHeading:
-    def test_heading_roughly_south(self):
-        """CDS2 Runway 11/29 runs roughly NNW-SSE (~170-175° from north).
-        The surveyed corners define a polygon elongated in that direction."""
-        utm = corners_to_utm(CDS2_CORNERS)
-        heading_rad = compute_heading_from_polygon(utm)
-        heading_deg = math.degrees(heading_rad)
-
-        # The polygon long axis should be roughly 170-190° (southward)
-        # or 350-10° (northward) — heading is ambiguous by 180°
-        # Accept either direction
-        assert (160 < heading_deg < 200) or (340 < heading_deg or heading_deg < 20), \
-            f"Heading {heading_deg:.1f}° — expected roughly N-S for this polygon section"
-
-    def test_heading_is_normalized(self):
-        utm = corners_to_utm(CDS2_CORNERS)
-        heading_rad = compute_heading_from_polygon(utm)
-        assert 0 <= heading_rad < 2 * math.pi
-
-
 class TestGenerateStrips:
     def test_generates_reasonable_strip_count(self):
-        """78ft (~23.8m) wide runway with 1.52m cuts and 0.15m overlap.
-        Effective step = 1.37m. Expected: ~17 strips."""
+        """Polygon ~24m wide with 1.37m effective step → ~8-9 rings."""
         strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        assert 12 <= len(strips) <= 25, \
-            f"Got {len(strips)} strips (expected ~17 for 23.8m / 1.37m)"
+        assert 5 <= len(strips) <= 12, \
+            f"Got {len(strips)} rings (expected 5-12 for spiral)"
 
     def test_strips_not_empty(self):
         strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
         for i, strip in enumerate(strips):
-            assert len(strip) >= 2, f"Strip {i} has fewer than 2 waypoints"
+            assert len(strip) >= 2, f"Ring {i} has fewer than 2 waypoints"
 
     def test_strips_are_latlon(self):
         """All waypoints should be valid lat/lon coordinates."""
@@ -95,43 +73,38 @@ class TestGenerateStrips:
                 e, n = latlon_to_utm(lat, lon)
                 pt = Point(e, n)
                 assert buffered.contains(pt), \
-                    f"Strip {i} waypoint ({lat}, {lon}) -> UTM ({e}, {n}) outside polygon"
+                    f"Ring {i} waypoint ({lat}, {lon}) -> UTM ({e}, {n}) outside polygon"
 
-    def test_boustrophedon_ordering(self):
-        """Odd-indexed strips should be reversed relative to even-indexed ones.
-        Check that strip 0 and strip 1 start at opposite ends."""
+    def test_spiral_ccw_direction(self):
+        """Each ring should be ordered counter-clockwise (positive shoelace area)."""
         strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        if len(strips) < 2:
-            pytest.skip("Need at least 2 strips")
+        for i, strip in enumerate(strips):
+            # Convert to UTM for area calculation
+            utm_pts = [latlon_to_utm(lat, lon) for lat, lon in strip]
+            # Shoelace signed area
+            signed_area = sum(
+                x0 * y1 - x1 * y0
+                for (x0, y0), (x1, y1) in zip(utm_pts, utm_pts[1:] + utm_pts[:1])
+            )
+            assert signed_area >= 0, \
+                f"Ring {i} has negative shoelace area ({signed_area:.1f}), expected CCW"
 
-        # Strip 0 first point and strip 1 first point should be
-        # at opposite ends of the runway (different latitudes for a N-S runway)
-        s0_start_lat = strips[0][0][0]
-        s0_end_lat = strips[0][-1][0]
-        s1_start_lat = strips[1][0][0]
+    def test_start_position(self):
+        """Providing start_latlon should rotate outermost ring start vertex."""
+        # Use the NE corner as start position
+        start = CDS2_CORNERS[1]  # NE corner
+        strips_default = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
+        strips_ne = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP, start_latlon=start)
 
-        # The start of strip 1 should be closer to the end of strip 0
-        dist_to_start = abs(s1_start_lat - s0_start_lat)
-        dist_to_end = abs(s1_start_lat - s0_end_lat)
-        assert dist_to_end < dist_to_start, \
-            "Boustrophedon: strip 1 should start near where strip 0 ends"
-
-    def test_heading_override(self):
-        """Manual heading override should produce strips in a different direction."""
-        strips_auto = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        strips_90 = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP, heading_override_deg=90.0)
-
-        # Different heading should produce different strip count
-        # (cutting across the polygon at a different angle)
-        # At minimum, the waypoints should be different
-        assert strips_auto[0][0] != strips_90[0][0], \
-            "Heading override should produce different waypoints"
+        # The outermost ring should start at a different waypoint
+        assert strips_default[0][0] != strips_ne[0][0], \
+            "start_latlon should rotate the outermost ring start"
 
     def test_overlap_zero(self):
-        """With zero overlap, should get slightly fewer strips."""
+        """With zero overlap, should get fewer rings."""
         strips_overlap = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
         strips_no_overlap = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, 0.0)
-        # More overlap means more strips
+        # More overlap means more rings (smaller effective step)
         assert len(strips_overlap) >= len(strips_no_overlap)
 
     def test_invalid_overlap_raises(self):
@@ -139,22 +112,53 @@ class TestGenerateStrips:
         with pytest.raises(ValueError):
             generate_strips(CDS2_CORNERS, CUTTING_WIDTH, CUTTING_WIDTH)
 
+    def test_rings_are_nested(self):
+        """Inner ring centroid should lie inside the outer ring polygon."""
+        strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
+        if len(strips) < 2:
+            pytest.skip("Need at least 2 rings")
+
+        for i in range(len(strips) - 1):
+            outer_utm = [latlon_to_utm(lat, lon) for lat, lon in strips[i]]
+            inner_utm = [latlon_to_utm(lat, lon) for lat, lon in strips[i + 1]]
+
+            outer_poly = Polygon(outer_utm)
+            if not outer_poly.is_valid:
+                outer_poly = outer_poly.convex_hull
+
+            inner_centroid = Polygon(inner_utm).centroid
+            assert outer_poly.buffer(1.0).contains(inner_centroid), \
+                f"Ring {i+1} centroid is not inside ring {i}"
+
+    def test_ring_connection_proximity(self):
+        """Each ring should start within 3x effective_step of the previous ring's end."""
+        strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
+        effective_step = CUTTING_WIDTH - OVERLAP
+
+        for i in range(1, len(strips)):
+            prev_end = latlon_to_utm(*strips[i - 1][-1])
+            curr_start = latlon_to_utm(*strips[i][0])
+            dist = math.sqrt(
+                (prev_end[0] - curr_start[0]) ** 2 +
+                (prev_end[1] - curr_start[1]) ** 2
+            )
+            assert dist < 3 * effective_step, \
+                f"Ring {i} start is {dist:.1f}m from ring {i-1} end (limit {3*effective_step:.1f}m)"
+
 
 class TestComputeStripStats:
     def test_returns_expected_keys(self):
         stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
         expected_keys = {
-            "strip_count", "effective_step_m", "polygon_area_m2",
-            "runway_width_m", "runway_length_m", "total_mowing_distance_m",
-            "heading_deg",
+            "ring_count", "effective_step_m", "polygon_area_m2",
+            "total_mowing_distance_m",
         }
         assert set(stats.keys()) == expected_keys
 
-    def test_strip_count_matches_generate(self):
+    def test_ring_count_matches_generate(self):
         stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
         strips = generate_strips(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        # Stats estimate may differ slightly from actual generation (clipping effects)
-        assert abs(stats["strip_count"] - len(strips)) <= 2
+        assert stats["ring_count"] == len(strips)
 
     def test_effective_step(self):
         stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
@@ -165,9 +169,3 @@ class TestComputeStripStats:
         The 4 corners span roughly 360m x 24m ≈ 8,640 m²."""
         stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
         assert 5_000 < stats["polygon_area_m2"] < 15_000
-
-    def test_runway_dimensions(self):
-        stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        # Width ~24m (78ft), length ~360m (surveyed section, not full 2246ft)
-        assert 15 < stats["runway_width_m"] < 35
-        assert 300 < stats["runway_length_m"] < 400

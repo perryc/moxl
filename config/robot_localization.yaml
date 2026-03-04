@@ -19,6 +19,7 @@ ekf_se_odom:
     frequency: 50.0
     sensor_timeout: 0.1
     two_d_mode: true
+    publish_tf: true
     transform_time_offset: 0.0
     transform_timeout: 0.0
     print_diagnostics: true
@@ -110,11 +111,12 @@ ekf_se_odom:
 # ============================================================
 ekf_se_map:
   ros__parameters:
-    frequency: 50.0
-    sensor_timeout: 0.1
+    frequency: 30.0             # lower freq reduces load from fast sim clock
+    sensor_timeout: 0.5         # tolerate brief sensor gaps during sim startup
     two_d_mode: true
+    publish_tf: true
     transform_time_offset: 0.0
-    transform_timeout: 0.0
+    transform_timeout: 2.0      # wait for odom→base_link after TF buffer clears
     print_diagnostics: true
     debug: false
 
