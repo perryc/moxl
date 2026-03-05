@@ -16,11 +16,11 @@
 # ============================================================
 ekf_se_odom:
   ros__parameters:
-    frequency: 50.0
+    frequency: 30.0              # reduced from 50 — sim clock outruns EKF at higher rates
     sensor_timeout: 0.1
     two_d_mode: true
     publish_tf: true
-    transform_time_offset: 0.0
+    transform_time_offset: 0.05  # publish TF 50ms ahead to prevent "extrapolation into future" in RPP
     transform_timeout: 0.0
     print_diagnostics: true
     debug: false
@@ -115,7 +115,7 @@ ekf_se_map:
     sensor_timeout: 0.5         # tolerate brief sensor gaps during sim startup
     two_d_mode: true
     publish_tf: true
-    transform_time_offset: 0.0
+    transform_time_offset: 0.05  # publish TF 50ms ahead to prevent RPP transform errors
     transform_timeout: 2.0      # wait for odom→base_link after TF buffer clears
     print_diagnostics: true
     debug: false
@@ -180,12 +180,15 @@ ekf_se_map:
 
     use_control: false
 
-    process_noise_covariance: [1.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    1.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+    # Process noise — x,y reduced from 1.0 to 0.1 for tighter GPS-based tracking.
+    # At 1.0 the position uncertainty grew too fast between 5 Hz GPS fixes,
+    # allowing the EKF to drift several meters between corrections.
+    process_noise_covariance: [0.1,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.1,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    1.0e-3, 0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.3,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.3,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    0.0,    0.0,    0.0,    0.0,    0.3,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.0,    0.0,    0.0,    0.0,    0.1,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.5,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.5,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.1,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,

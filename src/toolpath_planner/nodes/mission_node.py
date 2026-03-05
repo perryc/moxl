@@ -318,8 +318,10 @@ class MissionNode(Node):
             )
 
             # Prepend a densified transit path from robot to first waypoint
-            # so the controller always has nearby poses to follow
-            transit = self._build_transit_path(map_poses[0])
+            # so the controller always has nearby poses to follow.
+            # Pass the second waypoint so transit aligns with first leg heading.
+            next_wp = map_poses[1] if len(map_poses) > 1 else None
+            transit = self._build_transit_path(map_poses[0], next_target=next_wp)
             if transit:
                 self.get_logger().info(
                     f"Transit: {len(transit)} waypoints to reach toolpath start"
@@ -744,8 +746,15 @@ class MissionNode(Node):
 
     def _build_transit_path(
         self, target: PoseStamped, spacing: float = 1.5,
+        next_target: PoseStamped | None = None,
     ) -> list[PoseStamped]:
-        """Build a densified straight-line path from the robot to *target*.
+        """Build a transit path from the robot to *target* with lead-in.
+
+        If *next_target* is provided, the path includes a lead-in segment
+        that aligns the robot's heading with the first toolpath leg
+        (target → next_target) before arriving at *target*.  This prevents
+        the cross-track overshoot that occurs when the transit heading
+        differs significantly from the first mowing leg heading.
 
         Returns a list of PoseStamped in the map frame, spaced every *spacing*
         meters. Returns empty list if robot pose is unavailable or already
@@ -766,28 +775,63 @@ class MissionNode(Node):
         tx = target.pose.position.x
         ty = target.pose.position.y
 
-        dx, dy = tx - rx, ty - ry
-        dist = math.sqrt(dx * dx + dy * dy)
-        if dist < spacing:
-            return []  # already close enough
+        # Compute lead-in approach point aligned with first toolpath segment
+        lead_in_dist = 20.0  # meters of straight approach before toolpath
+        if next_target is not None:
+            ntx = next_target.pose.position.x
+            nty = next_target.pose.position.y
+            leg_dx = ntx - tx
+            leg_dy = nty - ty
+            leg_len = math.sqrt(leg_dx * leg_dx + leg_dy * leg_dy)
+            if leg_len > 0.01:
+                # Approach point: back up along the first leg direction
+                approach_x = tx - (leg_dx / leg_len) * lead_in_dist
+                approach_y = ty - (leg_dy / leg_len) * lead_in_dist
+            else:
+                approach_x, approach_y = tx, ty
+        else:
+            approach_x, approach_y = tx, ty
 
-        n_pts = max(2, int(math.ceil(dist / spacing)) + 1)
-        yaw = math.atan2(dy, dx)
-        oz = math.sin(yaw / 2.0)
-        ow = math.cos(yaw / 2.0)
+        # Build two-segment path: robot → approach point → target
+        segments = []
+        if next_target is not None and (
+            abs(approach_x - tx) > 0.1 or abs(approach_y - ty) > 0.1
+        ):
+            segments.append((rx, ry, approach_x, approach_y))
+            segments.append((approach_x, approach_y, tx, ty))
+            self.get_logger().info(
+                f"Transit lead-in: approach at ({approach_x:.1f}, "
+                f"{approach_y:.1f}) → target ({tx:.1f}, {ty:.1f})"
+            )
+        else:
+            segments.append((rx, ry, tx, ty))
 
         poses: list[PoseStamped] = []
-        for i in range(n_pts):
-            frac = i / (n_pts - 1)
-            p = PoseStamped()
-            p.header.frame_id = "map"
-            p.header.stamp = Time(seconds=0).to_msg()
-            p.pose.position.x = rx + frac * dx
-            p.pose.position.y = ry + frac * dy
-            p.pose.position.z = 0.0
-            p.pose.orientation.z = oz
-            p.pose.orientation.w = ow
-            poses.append(p)
+        for sx, sy, ex, ey in segments:
+            dx, dy = ex - sx, ey - sy
+            dist = math.sqrt(dx * dx + dy * dy)
+            if dist < spacing:
+                continue
+            n_pts = max(2, int(math.ceil(dist / spacing)) + 1)
+            yaw = math.atan2(dy, dx)
+            oz = math.sin(yaw / 2.0)
+            ow = math.cos(yaw / 2.0)
+            # Skip first point of second segment (same as last of first)
+            start_i = 1 if poses else 0
+            for i in range(start_i, n_pts):
+                frac = i / (n_pts - 1)
+                p = PoseStamped()
+                p.header.frame_id = "map"
+                p.header.stamp = Time(seconds=0).to_msg()
+                p.pose.position.x = sx + frac * dx
+                p.pose.position.y = sy + frac * dy
+                p.pose.position.z = 0.0
+                p.pose.orientation.z = oz
+                p.pose.orientation.w = ow
+                poses.append(p)
+
+        if not poses:
+            return []
         return poses
 
     # ── Nav2 integration ─────────────────────────────────────────────

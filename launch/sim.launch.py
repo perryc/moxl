@@ -93,11 +93,15 @@ def generate_launch_description():
     # Relay Gazebo IMU → localization topics.
     # heading_to_imu_node has no NMEA input in sim, so relay the Gazebo
     # IMU to the topics the EKF and navsat_transform expect.
+    # heading_offset corrects Gazebo IMU (relative yaw from start=0) to
+    # absolute world-frame heading matching the robot's spawn yaw.
+    spawn_yaw = -1.5708
     imu_relay = ExecuteProcess(
         cmd=['python3',
              os.path.join(get_package_share_directory(package_name),
                           'scripts', 'sim_imu_relay.py'),
-             '--ros-args', '-p', 'use_sim_time:=true'],
+             '--ros-args', '-p', 'use_sim_time:=true',
+             '-p', f'heading_offset:={spawn_yaw}'],
         output='screen'
     )
 

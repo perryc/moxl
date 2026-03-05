@@ -4,6 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
+from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -34,13 +35,15 @@ def generate_launch_description():
 
             # GPS heading bridge: QuaternionStamped → Imu
             # Speed-dependent covariance: trusts magnetometer at standstill,
-            # backs off at speed so GPS-derived heading dominates
+            # backs off at speed so GPS-derived heading dominates.
+            # NOT launched in sim — sim_imu_relay provides /gps/imu instead.
             Node(
                 package="toolpath_planner",
                 executable="heading_to_imu_node",
                 name="heading_to_imu",
                 output="screen",
                 parameters=[{"use_sim_time": use_sim_time}],
+                condition=UnlessCondition(use_sim_time),
             ),
 
             # EKF #1: odom frame — wheel odometry + GPS magnetometer heading

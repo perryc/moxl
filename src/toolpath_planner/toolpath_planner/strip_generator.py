@@ -134,6 +134,12 @@ def generate_strips(
         if shrunk.geom_type != "Polygon":
             break
 
+        # Reject rings too narrow to mow: if the polygon can't contain
+        # a circle of diameter = effective_step, some section is thinner
+        # than one pass width — the mower can't follow the path there.
+        if shrunk.buffer(-effective_step / 2).is_empty:
+            break
+
         coords = list(shrunk.exterior.coords)
         coords = _ensure_ccw(coords)
 
@@ -191,6 +197,10 @@ def compute_strip_stats(
             shrunk = max(shrunk.geoms, key=lambda g: g.area)
 
         if shrunk.geom_type != "Polygon":
+            break
+
+        # Same minimum-width check as generate_strips
+        if shrunk.buffer(-effective_step / 2).is_empty:
             break
 
         ring_count += 1

@@ -41,7 +41,7 @@ controller_server:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       desired_linear_vel: 0.8   # m/s — real hardware speed. Higher speeds overshoot 0.76m spiral corners
       lookahead_dist: 2.0      # must be < ring spacing (1.47m) at corners to avoid skipping rings
-      min_lookahead_dist: 0.3    # allow tight tracking at spiral corners (~0.76m radius)
+      min_lookahead_dist: 0.8    # floor for cross-track correction; still < ring spacing (1.47m)
       max_lookahead_dist: 3.0   # keep < 2× ring spacing to prevent cross-ring carrot jumps
       lookahead_time: 1.5       # 1.5m/s × 1.5s = 2.25m effective lookahead — within 2 rings
       rotate_to_heading_angular_vel: 0.8  # gentle turns for turf

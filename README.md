@@ -115,12 +115,12 @@ Full wiring harness diagram in [WireViz format](docs/wiring/moxl_harness.yml) �
 
 **Navigation** — Nav2 path following:
 - `RegulatedPurePursuitController` — smooth path tracking tuned for large turning radius
-- `NavfnPlanner` — global path planning
+- `SmacPlanner2D` — global path planning
 - `VelocitySmoother` — acceleration limiting for smooth motion
 - `twist_mux` — priority-based velocity command multiplexing (joystick > navigation, e-stop locks all)
 
 **Mission Control** — autonomous mowing orchestration:
-- `toolpath_node` — generates parallel boustrophedon mowing strips from RTK-surveyed runway corners
+- `toolpath_node` — generates CCW inward-spiral mowing toolpath from RTK-surveyed runway corners
 - `engine_controller_node` — engine start/stop services (stub — GPIO implementation pending)
 - `blade_controller_node` — blade engage/disengage services (stub — GPIO implementation pending)
 - `mission_node` — action server that sequences: preflight (start engine, engage blades) → mow all strips via Nav2 → return to park position → shutdown. Monitors CTAF radio activity and evacuates to a clear zone when traffic is detected.
@@ -144,16 +144,19 @@ Full wiring harness diagram in [WireViz format](docs/wiring/moxl_harness.yml) �
 
 ### Toolpath Generation
 
-The toolpath planner loads runway corner coordinates (RTK-surveyed at 0.02m accuracy), projects to UTM, and generates parallel mowing strips:
+The toolpath planner loads runway corner coordinates (RTK-surveyed at 0.02m accuracy), projects to UTM, and generates a CCW inward-spiral mowing path:
 
 1. Load runway polygon from `config/airstrips/CDS2.json`
 2. Project WGS84 corners to UTM Zone 13N (EPSG:32613) via pyproj
-3. Compute runway heading from the long axis
-4. Step perpendicular to heading at `cutting_width - overlap` intervals
-5. Clip each strip to the runway polygon (shapely)
-6. Order strips in boustrophedon (alternating direction) pattern
+3. Buffer the polygon inward by half a cutting width for the outermost ring
+4. Progressively buffer inward by `cutting_width - overlap` for each ring
+5. Reject rings too narrow to mow (minimum width < one pass width)
+6. Densify each ring with waypoints every 1.5m and rotate start vertex nearest previous ring end
+7. All rings concatenated into a single continuous path for Nav2
 
-For CDS2 runway 11/29 (2246 ft x 78 ft) with a 60" deck and 15cm overlap: ~17 strips, ~12 km total mowing distance.
+The CCW spiral keeps the mower's right-side discharge facing inward toward already-cut grass.
+
+For CDS2 runway 11/29 (2246 ft x 78 ft) with a 60" deck and 5cm overlap: 6 rings, ~4.3 km total mowing distance.
 
 ### Aviation Radio Traffic Detector
 
@@ -228,7 +231,7 @@ moxl/
 │   │   ├── toolpath_planner/        # Core library
 │   │   │   ├── coordinate_utils.py  # WGS84 ↔ UTM conversion
 │   │   │   ├── polygon_loader.py    # Airport JSON → runway corners
-│   │   │   └── strip_generator.py   # Boustrophedon strip generation
+│   │   │   └── strip_generator.py   # CCW inward-spiral generation
 │   │   ├── nodes/                   # ROS2 nodes
 │   │   │   ├── toolpath_node.py     # Strip generation + publishing
 │   │   │   ├── heading_to_imu_node.py # GPS heading → IMU bridge
@@ -283,26 +286,25 @@ cd src/moxl/src/toolpath_planner
 python3 -m pytest test/ -v
 ```
 
-All 31 tests cover coordinate conversion accuracy, strip generation geometry, and polygon loading.
+All 30 tests cover coordinate conversion accuracy, strip generation geometry, and polygon loading.
 
-### Simulation (Docker — recommended)
+### Simulation
 
-The easiest way to see MOXL in action. Runs Gazebo simulation with full Nav2 navigation, toolpath planning, and mission control — no ROS2 install required.
+Runs Gazebo simulation with full Nav2 navigation, toolpath planning, and mission control.
 
 ```bash
-# Start the simulation (streams Gazebo GUI to your browser)
-docker compose up sim
-
-# Open Gazebo in your browser
-open http://localhost:12345
+# Build and launch the simulation
+source /opt/ros/jazzy/setup.bash
+cd ~/ros2_ws && colcon build --symlink-install
+source install/setup.bash
+ros2 launch moxl sim.launch.py
 
 # Send a mowing mission (in a second terminal)
-docker compose exec sim bash -c "source /opt/ws/install/setup.bash && \
-  ros2 action send_goal /moxl/mission moxl/action/MowMission \
-  '{airstrip_id: CDS2, runway_id: \"11/29\"}' --feedback"
+ros2 action send_goal /moxl/mission moxl/action/MowMission \
+  '{airstrip_id: CDS2, runway_id: "11/29"}' --feedback
 ```
 
-The mower will autonomously mow all 14 strips of the CDS2 runway at 1.0 m/s in boustrophedon pattern. Zoom out in Gazebo to see the full runway (lighter green strip with white threshold markers at each end).
+The mower autonomously mows all 6 rings of the CDS2 runway in a CCW inward spiral at 0.8 m/s, then returns to its park position. The sim includes a `sim_imu_relay` that bridges Gazebo's IMU to the localization stack with heading offset correction.
 
 ### Launch (Native ROS2)
 
@@ -335,12 +337,11 @@ This is an active build. The software architecture is complete; hardware integra
 - [x] BTS7960 hardware interface (ros2_control plugin defined, mock for desktop)
 - [x] URDF robot description (from engineering drawing measurements)
 - [x] GPS integration (nmea_navsat_driver + magnetometer heading bridge)
-- [x] Toolpath planner (boustrophedon strip generation, 31 tests passing)
+- [x] Toolpath planner (CCW inward-spiral generation, 30 tests passing)
 - [x] Mission control (action server state machine, engine/blade stubs)
 - [x] Safety monitor (GPS watchdog + e-stop)
 - [x] Wiring harness diagram (WireViz)
-- [x] Gazebo simulation — full autonomous mowing mission completes (14 strips, 5.4 km)
-- [x] Docker containerization — one command to run the full sim
+- [x] Gazebo simulation — full autonomous mowing mission completes (6 rings, 4.3 km, returns to park)
 - [x] Aviation radio traffic detector — RTL-SDR monitors 122.8 MHz CTAF, auto-evacuates runway on traffic
 - [ ] BTS7960 GPIO driver (compile for Pi, wire motors)
 - [ ] Engine control GPIO (starter relay, choke servo, RPM sensor)
