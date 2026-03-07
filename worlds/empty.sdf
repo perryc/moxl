@@ -45,7 +45,7 @@
                     <geometry>
                         <plane>
                             <normal>0 0 1</normal>
-                            <size>1000 1000</size>
+                            <size>2000 2000</size>
                         </plane>
                     </geometry>
                     <surface>
@@ -61,7 +61,7 @@
                     <geometry>
                         <plane>
                             <normal>0 0 1</normal>
-                            <size>1000 1000</size>
+                            <size>2000 2000</size>
                         </plane>
                     </geometry>
                     <material>
@@ -73,53 +73,20 @@
             </link>
         </model>
 
-        <!-- CDS2 mowing polygon boundary (exact /fromLL positions)             -->
-        <!-- C1 (-13.25, 183.76)  C2 (6.31, 173.88)                            -->
-        <!-- C4 (-7.12, -176.78)  C3 (13.40, -180.20)                          -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- Runway 11/29 mowing polygon boundary (approx ENU from datum) -->
+        <!-- C1 NW (-598.6, 460.3)  C2 NE (-592.9, 480.6)               -->
+        <!-- C4 SW (9.7, 141.7)     C3 SE (18.1, 167.3)                  -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
 
-        <!-- West edge: C1→C4 — length 360.6m, midpoint (-10.19, 3.49) -->
-        <model name="edge_west">
-            <static>true</static>
-            <pose>-10.19 3.49 0.01 0 0 0.0170</pose>
-            <link name="link">
-                <visual name="visual">
-                    <geometry>
-                        <box><size>0.4 360.6 0.01</size></box>
-                    </geometry>
-                    <material>
-                        <ambient>0.9 0.9 0.9 1</ambient>
-                        <diffuse>0.9 0.9 0.9 1</diffuse>
-                    </material>
-                </visual>
-            </link>
-        </model>
-
-        <!-- East edge: C2→C3 — length 354.2m, midpoint (9.86, -3.16) -->
-        <model name="edge_east">
-            <static>true</static>
-            <pose>9.86 -3.16 0.01 0 0 0.0200</pose>
-            <link name="link">
-                <visual name="visual">
-                    <geometry>
-                        <box><size>0.4 354.2 0.01</size></box>
-                    </geometry>
-                    <material>
-                        <ambient>0.9 0.9 0.9 1</ambient>
-                        <diffuse>0.9 0.9 0.9 1</diffuse>
-                    </material>
-                </visual>
-            </link>
-        </model>
-
-        <!-- North edge: C1→C2 — length 21.9m, midpoint (-3.47, 178.82) -->
-        <!-- yaw = atan2(-dx, dy) for box Y-axis alignment; dx=19.56, dy=-9.88 -->
+        <!-- North edge: C2→C3 — length 686.7m, yaw=atan2(-dx,dy) -->
         <model name="edge_north">
             <static>true</static>
-            <pose>-3.47 178.82 0.01 0 0 1.103</pose>
+            <pose>-287.4 324.0 0.01 0 0 -2.045</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry>
-                        <box><size>0.4 21.9 0.01</size></box>
+                        <box><size>0.4 686.7 0.01</size></box>
                     </geometry>
                     <material>
                         <ambient>0.9 0.9 0.9 1</ambient>
@@ -129,15 +96,14 @@
             </link>
         </model>
 
-        <!-- South edge: C4→C3 — length 20.8m, midpoint (3.14, -178.49) -->
-        <!-- yaw = atan2(-dx, dy) for box Y-axis alignment; dx=20.52, dy=-3.42 -->
+        <!-- South edge: C1→C4 — length 686.7m -->
         <model name="edge_south">
             <static>true</static>
-            <pose>3.14 -178.49 0.01 0 0 1.406</pose>
+            <pose>-294.5 301.0 0.01 0 0 -2.054</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry>
-                        <box><size>0.4 20.8 0.01</size></box>
+                        <box><size>0.4 686.7 0.01</size></box>
                     </geometry>
                     <material>
                         <ambient>0.9 0.9 0.9 1</ambient>
@@ -147,10 +113,44 @@
             </link>
         </model>
 
-        <!-- Corner markers — bright red cubes at exact polygon corners -->
+        <!-- West end: C1→C2 — length 21.1m -->
+        <model name="edge_west">
+            <static>true</static>
+            <pose>-595.8 470.5 0.01 0 0 -0.274</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.4 21.1 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- East end: C4→C3 — length 26.9m -->
+        <model name="edge_east">
+            <static>true</static>
+            <pose>13.9 154.5 0.01 0 0 -0.317</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.4 26.9 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.9 0.9 0.9 1</ambient>
+                        <diffuse>0.9 0.9 0.9 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Corner markers — bright red cubes at polygon corners -->
         <model name="corner_c1_nw">
             <static>true</static>
-            <pose>-13.25 183.76 0.5 0 0 0</pose>
+            <pose>-598.6 460.3 0.5 0 0 0</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry><box><size>1 1 1</size></box></geometry>
@@ -163,7 +163,7 @@
         </model>
         <model name="corner_c2_ne">
             <static>true</static>
-            <pose>6.31 173.88 0.5 0 0 0</pose>
+            <pose>-592.9 480.6 0.5 0 0 0</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry><box><size>1 1 1</size></box></geometry>
@@ -176,7 +176,7 @@
         </model>
         <model name="corner_c3_se">
             <static>true</static>
-            <pose>13.40 -180.20 0.5 0 0 0</pose>
+            <pose>18.1 167.3 0.5 0 0 0</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry><box><size>1 1 1</size></box></geometry>
@@ -189,7 +189,7 @@
         </model>
         <model name="corner_c4_sw">
             <static>true</static>
-            <pose>-7.12 -176.78 0.5 0 0 0</pose>
+            <pose>9.7 141.7 0.5 0 0 0</pose>
             <link name="link">
                 <visual name="visual">
                     <geometry><box><size>1 1 1</size></box></geometry>
@@ -201,7 +201,229 @@
             </link>
         </model>
 
-        <!-- No fill — SDF box can't represent the trapezoidal polygon.
-             Edge lines + corner markers are the authoritative boundary. -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- Hangars — 4 buildings south of runway 11/29, near NW end     -->
+        <!-- All NW faces aligned at 22.7m perpendicular from south edge  -->
+        <!-- Oriented parallel to runway (heading 120° = yaw -0.52 rad)   -->
+        <!-- Order along runway NW→SE: large, middle, green, new          -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+
+        <!-- Hangar 1 — large, westernmost of original three -->
+        <model name="hangar_large">
+            <static>true</static>
+            <pose>-509.1 387.5 2.25 0 0 -0.52</pose>
+            <link name="link">
+                <collision name="collision">
+                    <geometry><box><size>10 14 4.5</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                    <geometry><box><size>10 14 4.5</size></box></geometry>
+                    <material>
+                        <ambient>0.6 0.6 0.55 1</ambient>
+                        <diffuse>0.6 0.6 0.55 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Hangar 2 — medium size -->
+        <model name="hangar_middle">
+            <static>true</static>
+            <pose>-494.0 379.6 2.0 0 0 -0.52</pose>
+            <link name="link">
+                <collision name="collision">
+                    <geometry><box><size>8 10 4.0</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                    <geometry><box><size>8 10 4.0</size></box></geometry>
+                    <material>
+                        <ambient>0.7 0.7 0.65 1</ambient>
+                        <diffuse>0.7 0.7 0.65 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Hangar 3 — green hangar (user's) -->
+        <model name="hangar_green">
+            <static>true</static>
+            <pose>-478.0 371.2 1.75 0 0 -0.52</pose>
+            <link name="link">
+                <collision name="collision">
+                    <geometry><box><size>7 8 3.5</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                    <geometry><box><size>7 8 3.5</size></box></geometry>
+                    <material>
+                        <ambient>0.1 0.5 0.4 1</ambient>
+                        <diffuse>0.1 0.5 0.4 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Hangar 4 — newest, largest, dark roof -->
+        <model name="hangar_new">
+            <static>true</static>
+            <pose>-462.1 362.9 2.5 0 0 -0.52</pose>
+            <link name="link">
+                <collision name="collision">
+                    <geometry><box><size>12 14 5.0</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                    <geometry><box><size>12 14 5.0</size></box></geometry>
+                    <material>
+                        <ambient>0.3 0.3 0.35 1</ambient>
+                        <diffuse>0.3 0.3 0.35 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Start/park marker — yellow cube in front of hangar 3 (green) -->
+        <!-- 8m toward runway (NW) from hangar center -->
+        <model name="start_marker">
+            <static>true</static>
+            <pose>-474.3 378.3 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>1.0 1.0 0.0 1</ambient>
+                        <diffuse>1.0 1.0 0.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- Runway 17/35 mowing polygon boundary (approx ENU from datum) -->
+        <!-- C1 N-W (-13.2, 183.9)  C2 N-E (6.3, 173.9)                 -->
+        <!-- C4 S-W (-7.1, -176.9)  C3 S-E (13.4, -180.4)               -->
+        <!-- Runway heading 179° mag, runs almost N-S                     -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+
+        <!-- West edge: C1→C4 — length 360.8m -->
+        <model name="rwy1735_edge_west">
+            <static>true</static>
+            <pose>-10.2 3.5 0.01 0 0 -3.125</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.3 360.8 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.3 0.8 1.0 1</ambient>
+                        <diffuse>0.3 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- East edge: C2→C3 — length 354.7m -->
+        <model name="rwy1735_edge_east">
+            <static>true</static>
+            <pose>9.9 -3.3 0.01 0 0 -3.122</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.3 354.7 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.3 0.8 1.0 1</ambient>
+                        <diffuse>0.3 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- North edge: C1→C2 — length 21.9m -->
+        <model name="rwy1735_edge_north">
+            <static>true</static>
+            <pose>-3.5 178.9 0.01 0 0 -2.046</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.3 21.9 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.3 0.8 1.0 1</ambient>
+                        <diffuse>0.3 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- South edge: C4→C3 — length 20.8m -->
+        <model name="rwy1735_edge_south">
+            <static>true</static>
+            <pose>3.2 -178.7 0.01 0 0 -1.740</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box><size>0.3 20.8 0.01</size></box>
+                    </geometry>
+                    <material>
+                        <ambient>0.3 0.8 1.0 1</ambient>
+                        <diffuse>0.3 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
+        <!-- Corner markers — cyan cubes at 17/35 polygon corners -->
+        <model name="rwy1735_c1_nw">
+            <static>true</static>
+            <pose>-13.2 183.9 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>0.0 0.8 1.0 1</ambient>
+                        <diffuse>0.0 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="rwy1735_c2_ne">
+            <static>true</static>
+            <pose>6.3 173.9 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>0.0 0.8 1.0 1</ambient>
+                        <diffuse>0.0 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="rwy1735_c3_se">
+            <static>true</static>
+            <pose>13.4 -180.4 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>0.0 0.8 1.0 1</ambient>
+                        <diffuse>0.0 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+        <model name="rwy1735_c4_sw">
+            <static>true</static>
+            <pose>-7.1 -176.9 0.5 0 0 0</pose>
+            <link name="link">
+                <visual name="visual">
+                    <geometry><box><size>1 1 1</size></box></geometry>
+                    <material>
+                        <ambient>0.0 0.8 1.0 1</ambient>
+                        <diffuse>0.0 0.8 1.0 1</diffuse>
+                    </material>
+                </visual>
+            </link>
+        </model>
+
     </world>
 </sdf>

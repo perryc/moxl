@@ -5,8 +5,8 @@ from toolpath_planner.coordinate_utils import latlon_to_utm, utm_to_latlon
 
 
 # CDS2 Runway 11/29 Corner 1 (NW) — RTK surveyed at 0.02m accuracy
-CDS2_C1_LAT = 50.6361219
-CDS2_C1_LON = -105.03202723
+CDS2_C1_LAT = 50.63860436
+CDS2_C1_LON = -105.0402994
 
 
 class TestLatLonToUtm:
@@ -38,12 +38,12 @@ class TestRoundTrip:
         assert abs(lon_back - CDS2_C1_LON) < 1e-8
 
     def test_round_trip_all_corners(self):
-        """All four CDS2 runway corners should round-trip cleanly."""
+        """All four CDS2 runway 11/29 corners should round-trip cleanly."""
         corners = [
-            (50.6361219, -105.03202723),
-            (50.63603243, -105.03175091),
-            (50.63285006, -105.03165067),
-            (50.63288086, -105.03194065),
+            (50.63860436, -105.0402994),
+            (50.63878645, -105.0402185),
+            (50.63597254, -105.03158463),
+            (50.63574267, -105.03170282),
         ]
         for lat, lon in corners:
             easting, northing = latlon_to_utm(lat, lon)
@@ -57,10 +57,10 @@ class TestRoundTrip:
         import math
 
         corners = [
-            (50.6361219, -105.03202723),   # C1 NW
-            (50.63603243, -105.03175091),  # C2 NE
-            (50.63285006, -105.03165067),  # C3 SE
-            (50.63288086, -105.03194065),  # C4 SW
+            (50.63860436, -105.0402994),   # C1 NW
+            (50.63878645, -105.0402185),   # C2 NE
+            (50.63597254, -105.03158463),  # C3 SE
+            (50.63574267, -105.03170282),  # C4 SW
         ]
         utm = [latlon_to_utm(lat, lon) for lat, lon in corners]
 

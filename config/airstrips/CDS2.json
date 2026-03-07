@@ -33,43 +33,43 @@
         "longitude": -105.03279442
       },
       "survey_metadata": {
-        "surveyed_by": "anonymous",
-        "survey_date": 1759638756620,
+        "surveyed_by": "4perryc@gmail.com",
+        "survey_date": 1759704504907,
         "survey_method": "4-corner mobile GPS survey",
-        "gps_accuracy_m": 1.03,
+        "gps_accuracy_m": 0.02,
         "magnetic_variation": 7.2,
         "corner_points": [
           {
             "corner": "CORNER_1",
-            "latitude": 50.6361219,
-            "longitude": -105.03202723,
-            "elevation_ft": 1861,
+            "latitude": 50.63860436,
+            "longitude": -105.0402994,
+            "elevation_ft": 1855,
             "accuracy_m": 0.02,
             "gps_source": "BLE_RTK_FIXED"
           },
           {
             "corner": "CORNER_2",
-            "latitude": 50.63603243,
-            "longitude": -105.03175091,
-            "elevation_ft": 1861,
+            "latitude": 50.63878645,
+            "longitude": -105.0402185,
+            "elevation_ft": 1853,
             "accuracy_m": 0.02,
             "gps_source": "BLE_RTK_FIXED"
           },
           {
             "corner": "CORNER_3",
-            "latitude": 50.63285006,
-            "longitude": -105.03165067,
-            "elevation_ft": 1847,
-            "accuracy_m": 0.02,
-            "gps_source": "BLE_RTK_FIXED"
+            "latitude": 50.63597254,
+            "longitude": -105.03158463,
+            "elevation_ft": 1761,
+            "accuracy_m": 2.04,
+            "gps_source": "GPS"
           },
           {
             "corner": "CORNER_4",
-            "latitude": 50.63288086,
-            "longitude": -105.03194065,
-            "elevation_ft": 1849,
-            "accuracy_m": 0.02,
-            "gps_source": "BLE_RTK_FIXED"
+            "latitude": 50.63574267,
+            "longitude": -105.03170282,
+            "elevation_ft": 1774,
+            "accuracy_m": 2.04,
+            "gps_source": "GPS"
           }
         ]
       },
@@ -128,43 +128,43 @@
         "longitude": -105.03181958
       },
       "survey_metadata": {
-        "surveyed_by": "4perryc@gmail.com",
-        "survey_date": 1759704504907,
+        "surveyed_by": "anonymous",
+        "survey_date": 1759638756620,
         "survey_method": "4-corner mobile GPS survey",
-        "gps_accuracy_m": 0.02,
+        "gps_accuracy_m": 1.03,
         "magnetic_variation": 7.2,
         "corner_points": [
           {
             "corner": "CORNER_1",
-            "latitude": 50.63860436,
-            "longitude": -105.0402994,
-            "elevation_ft": 1855,
+            "latitude": 50.6361219,
+            "longitude": -105.03202723,
+            "elevation_ft": 1861,
             "accuracy_m": 0.02,
             "gps_source": "BLE_RTK_FIXED"
           },
           {
             "corner": "CORNER_2",
-            "latitude": 50.63878645,
-            "longitude": -105.0402185,
-            "elevation_ft": 1853,
+            "latitude": 50.63603243,
+            "longitude": -105.03175091,
+            "elevation_ft": 1861,
             "accuracy_m": 0.02,
             "gps_source": "BLE_RTK_FIXED"
           },
           {
             "corner": "CORNER_3",
-            "latitude": 50.63597254,
-            "longitude": -105.03158463,
-            "elevation_ft": 1761,
-            "accuracy_m": 2.04,
-            "gps_source": "GPS"
+            "latitude": 50.63285006,
+            "longitude": -105.03165067,
+            "elevation_ft": 1847,
+            "accuracy_m": 0.02,
+            "gps_source": "BLE_RTK_FIXED"
           },
           {
             "corner": "CORNER_4",
-            "latitude": 50.63574267,
-            "longitude": -105.03170282,
-            "elevation_ft": 1774,
-            "accuracy_m": 2.04,
-            "gps_source": "GPS"
+            "latitude": 50.63288086,
+            "longitude": -105.03194065,
+            "elevation_ft": 1849,
+            "accuracy_m": 0.02,
+            "gps_source": "BLE_RTK_FIXED"
           }
         ]
       }

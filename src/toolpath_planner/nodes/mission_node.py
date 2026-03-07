@@ -50,8 +50,8 @@ class MissionNode(Node):
     def __init__(self):
         super().__init__("mission_node")
 
-        self.declare_parameter("park_lat", 50.637833)
-        self.declare_parameter("park_lon", -105.038583)
+        self.declare_parameter("park_lat", 50.63787)
+        self.declare_parameter("park_lon", -105.03854)
         self.declare_parameter("quiet_period_sec", 300.0)
 
         self.cb_group = ReentrantCallbackGroup()
@@ -290,83 +290,82 @@ class MissionNode(Node):
             # ── LOAD CLEAR ZONES ──────────────────────────────────
             await self._load_clear_zones()
 
-            # ── MOWING ───────────────────────────────────────────
+            # ── MOWING (per-strip) ────────────────────────────────
+            # Send each strip as a separate FollowPath goal to prevent
+            # the RPP controller from matching to adjacent spiral rings
+            # (rings are only 1.47m apart but 1400m on the path).
             self.state = MissionStatus.MOWING
             self.current_strip = 1
-            self.total_strips = self.total_strips
             self._send_feedback(goal_handle, feedback)
-            self.get_logger().info(
-                f"Mowing all {self.total_strips} strips as continuous path"
-            )
 
-            # Convert entire toolpath to map frame in one go
-            self.get_logger().info(
-                f"Converting {len(self.full_toolpath.poses)} waypoints "
-                f"from lat/lon to map frame..."
-            )
-            map_poses = await self._convert_strip_to_map(self.full_toolpath)
-            if not map_poses:
-                return self._abort(
-                    goal_handle, result,
-                    "Failed to convert toolpath to map frame"
-                )
-            self.get_logger().info(
-                f"First waypoint in map: ({map_poses[0].pose.position.x:.1f}, "
-                f"{map_poses[0].pose.position.y:.1f}), "
-                f"last: ({map_poses[-1].pose.position.x:.1f}, "
-                f"{map_poses[-1].pose.position.y:.1f})"
-            )
+            # Re-generate to reset strip iterator (count_strips consumed it)
+            await self._call_generate_toolpath()
+            await self._sleep(0.5)
 
-            # Prepend a densified transit path from robot to first waypoint
-            # so the controller always has nearby poses to follow.
-            # Pass the second waypoint so transit aligns with first leg heading.
-            next_wp = map_poses[1] if len(map_poses) > 1 else None
-            transit = self._build_transit_path(map_poses[0], next_target=next_wp)
-            if transit:
-                self.get_logger().info(
-                    f"Transit: {len(transit)} waypoints to reach toolpath start"
-                )
-                map_poses = transit + map_poses
-
-            self.get_logger().info(
-                f"Sending {len(map_poses)} waypoints to Nav2 FollowPath"
-            )
-
-            # Mow with radio evacuation support — will pause/resume
-            # if radio traffic is detected on CTAF
-            self._waypoint_resume_index = 0
-            while self._waypoint_resume_index < len(map_poses):
+            for strip_num in range(1, self.total_strips + 1):
                 if goal_handle.is_cancel_requested:
                     return self._cancel(goal_handle, result)
 
-                remaining = map_poses[self._waypoint_resume_index:]
+                self.current_strip = strip_num
+                self._send_feedback(goal_handle, feedback)
+
+                # Wait for current strip path
+                self.current_strip_path = None
+                for _ in range(50):
+                    if self.current_strip_path and len(self.current_strip_path.poses) > 0:
+                        break
+                    await self._sleep(0.1)
+
+                if not self.current_strip_path or len(self.current_strip_path.poses) == 0:
+                    self.get_logger().warn(f"Strip {strip_num}: no path, skipping")
+                    await self._call_next_strip()
+                    continue
+
+                # Convert strip to map frame
+                map_poses = await self._convert_strip_to_map(self.current_strip_path)
+                if not map_poses:
+                    self.get_logger().warn(f"Strip {strip_num}: conversion failed, skipping")
+                    await self._call_next_strip()
+                    continue
+
+                # Prepend transit from robot to first waypoint
+                next_wp = map_poses[1] if len(map_poses) > 1 else None
+                transit = self._build_transit_path(map_poses[0], next_target=next_wp)
+                if transit:
+                    map_poses = transit + map_poses
+
                 self.get_logger().info(
-                    f"Following path from waypoint "
-                    f"{self._waypoint_resume_index}/{len(map_poses)}"
+                    f"Strip {strip_num}/{self.total_strips}: "
+                    f"{len(map_poses)} waypoints"
                 )
 
-                # Send remaining path to controller
-                nav_ok = await self._follow_path_with_radio_check(
-                    remaining, goal_handle, feedback
-                )
+                # Follow strip with radio evacuation support
+                self._waypoint_resume_index = 0
+                while self._waypoint_resume_index < len(map_poses):
+                    if goal_handle.is_cancel_requested:
+                        return self._cancel(goal_handle, result)
 
-                if nav_ok:
-                    # Completed all remaining waypoints
-                    break
-
-                if goal_handle.is_cancel_requested:
-                    return self._cancel(goal_handle, result)
-
-                # If we get here due to radio evacuation, the resume index
-                # has been updated — loop will continue from where we left off.
-                # If navigation truly failed (not radio), abort.
-                if not self._radio_active and not self._evacuated:
-                    return self._abort(
-                        goal_handle, result,
-                        "Navigation failed during mowing"
+                    remaining = map_poses[self._waypoint_resume_index:]
+                    nav_ok = await self._follow_path_with_radio_check(
+                        remaining, goal_handle, feedback
                     )
 
-                self._evacuated = False
+                    if nav_ok:
+                        break
+
+                    if goal_handle.is_cancel_requested:
+                        return self._cancel(goal_handle, result)
+
+                    if not self._radio_active and not self._evacuated:
+                        return self._abort(
+                            goal_handle, result,
+                            f"Navigation failed on strip {strip_num}"
+                        )
+
+                    self._evacuated = False
+
+                # Advance to next strip
+                await self._call_next_strip()
 
             self.current_strip = self.total_strips
 

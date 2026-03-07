@@ -12,12 +12,12 @@ from toolpath_planner.strip_generator import (
 from toolpath_planner.coordinate_utils import latlon_to_utm
 
 
-# CDS2 Runway 11/29 RTK-surveyed corners (0.02m accuracy)
+# CDS2 Runway 11/29 surveyed corners (C1/C2 RTK 0.02m, C3/C4 GPS 2.04m)
 CDS2_CORNERS = [
-    (50.6361219, -105.03202723),   # C1 NW
-    (50.63603243, -105.03175091),  # C2 NE
-    (50.63285006, -105.03165067),  # C3 SE
-    (50.63288086, -105.03194065),  # C4 SW
+    (50.63860436, -105.0402994),   # C1 NW
+    (50.63878645, -105.0402185),   # C2 NE
+    (50.63597254, -105.03158463),  # C3 SE
+    (50.63574267, -105.03170282),  # C4 SW
 ]
 
 CUTTING_WIDTH = 1.52   # meters (~5ft Swisher deck)
@@ -166,6 +166,6 @@ class TestComputeStripStats:
 
     def test_polygon_area_reasonable(self):
         """Surveyed section area should be in the right ballpark.
-        The 4 corners span roughly 360m x 24m ≈ 8,640 m²."""
+        Runway 11/29: ~685m x 24m ≈ 16,440 m² (trapezoidal)."""
         stats = compute_strip_stats(CDS2_CORNERS, CUTTING_WIDTH, OVERLAP)
-        assert 5_000 < stats["polygon_area_m2"] < 15_000
+        assert 10_000 < stats["polygon_area_m2"] < 25_000

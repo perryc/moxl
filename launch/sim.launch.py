@@ -37,13 +37,13 @@ def generate_launch_description():
         remappings=[('/cmd_vel_out', '/diff_drive_base_controller/cmd_vel')],
     )
 
-    # Park position: ~30m north of runway 11/29 north edge
-    # ENU (0, 211) → GPS (50.63640, -105.03180), facing south toward runway
-    park_lat = 50.63640
-    park_lon = -105.03180
+    # Park/start position: in front of hangar 3 (green), facing runway
+    # ENU (-474.3, 378.3) from datum (50.63447, -105.03184)
+    park_lat = 50.63787
+    park_lon = -105.03854
 
-    # Spawn at park position relative to Gazebo origin (= navsat datum)
-    # Park GPS (50.63640, -105.03180) → ENU (2.8, 214.8) from datum
+    # Spawn at start position, facing NNE toward runway (yaw ~1.09 rad)
+    spawn_yaw = 1.09
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
@@ -51,8 +51,8 @@ def generate_launch_description():
         arguments=['-topic', 'robot_description',
                    '-world', 'map',
                    '-name', 'moxl',
-                   '-x', '2.8', '-y', '214.8', '-z', '0.2',
-                   '-Y', '-1.5708'],
+                   '-x', '-474.3', '-y', '378.3', '-z', '0.2',
+                   '-Y', str(spawn_yaw)],
     )
 
     bridge = Node(
@@ -95,7 +95,6 @@ def generate_launch_description():
     # IMU to the topics the EKF and navsat_transform expect.
     # heading_offset corrects Gazebo IMU (relative yaw from start=0) to
     # absolute world-frame heading matching the robot's spawn yaw.
-    spawn_yaw = -1.5708
     imu_relay = ExecuteProcess(
         cmd=['python3',
              os.path.join(get_package_share_directory(package_name),
