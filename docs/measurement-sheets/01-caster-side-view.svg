@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" font-family="monospace" font-size="13">
+  <rect width="800" height="500" fill="white"/>
+  <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="bold">MOXL Measurement Sheet 1/4 — Caster (Front Wheel) Side View</text>
+  <text x="400" y="50" text-anchor="middle" font-size="12" fill="#666">Print at 100%. Write measurements in the boxes.</text>
+
+  <!-- Ground line -->
+  <line x1="50" y1="380" x2="750" y2="380" stroke="black" stroke-width="2"/>
+  <text x="760" y="384" font-size="11" fill="#666">ground</text>
+
+  <!-- Caster wheel -->
+  <circle cx="300" cy="340" r="40" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="300" cy="340" r="3" fill="black"/>
+
+  <!-- Caster fork -->
+  <line x1="300" y1="300" x2="340" y2="220" stroke="black" stroke-width="2"/>
+  <line x1="300" y1="300" x2="260" y2="300" stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <!-- Pivot point -->
+  <circle cx="340" cy="220" r="5" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="216" font-size="11">pivot</text>
+
+  <!-- Chassis bar from pivot -->
+  <line x1="340" y1="220" x2="650" y2="220" stroke="black" stroke-width="3"/>
+
+  <!-- Drive wheel -->
+  <circle cx="620" cy="310" r="70" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="620" cy="310" r="3" fill="black"/>
+  <line x1="620" y1="310" x2="620" y2="220" stroke="black" stroke-width="2"/>
+
+  <!-- ========== DIMENSION A: Wheel diameter ========== -->
+  <line x1="220" y1="300" x2="220" y2="380" stroke="red" stroke-width="1"/>
+  <line x1="210" y1="300" x2="230" y2="300" stroke="red" stroke-width="1"/>
+  <line x1="210" y1="380" x2="230" y2="380" stroke="red" stroke-width="1"/>
+  <text x="170" y="345" fill="red" font-size="12" font-weight="bold">A</text>
+  <rect x="100" y="330" width="70" height="22" fill="white" stroke="red" stroke-width="1"/>
+  <text x="105" y="346" fill="#ccc" font-size="11">_____ "</text>
+
+  <!-- ========== DIMENSION B: Wheel width ========== -->
+  <line x1="275" y1="400" x2="325" y2="400" stroke="blue" stroke-width="1"/>
+  <line x1="275" y1="393" x2="275" y2="407" stroke="blue" stroke-width="1"/>
+  <line x1="325" y1="393" x2="325" y2="407" stroke="blue" stroke-width="1"/>
+  <text x="293" y="420" fill="blue" font-size="12" font-weight="bold">B</text>
+  <rect x="270" y="423" width="70" height="22" fill="white" stroke="blue" stroke-width="1"/>
+  <text x="275" y="439" fill="#ccc" font-size="11">_____ "</text>
+
+  <!-- ========== DIMENSION C: Pivot to axle (swivel offset) ========== -->
+  <line x1="300" y1="195" x2="340" y2="195" stroke="green" stroke-width="1"/>
+  <line x1="300" y1="188" x2="300" y2="340" stroke="green" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="340" y1="188" x2="340" y2="202" stroke="green" stroke-width="1"/>
+  <text x="310" y="190" fill="green" font-size="12" font-weight="bold">C</text>
+  <rect x="290" y="165" width="100" height="22" fill="white" stroke="green" stroke-width="1"/>
+  <text x="295" y="181" fill="#ccc" font-size="11">________ "</text>
+
+  <!-- ========== DIMENSION D: Pivot height above ground ========== -->
+  <line x1="380" y1="220" x2="380" y2="380" stroke="purple" stroke-width="1"/>
+  <line x1="373" y1="220" x2="387" y2="220" stroke="purple" stroke-width="1"/>
+  <line x1="373" y1="380" x2="387" y2="380" stroke="purple" stroke-width="1"/>
+  <text x="388" y="305" fill="purple" font-size="12" font-weight="bold">D</text>
+  <rect x="392" y="293" width="70" height="22" fill="white" stroke="purple" stroke-width="1"/>
+  <text x="397" y="309" fill="#ccc" font-size="11">_____ "</text>
+
+  <!-- ========== DIMENSION E: Trail (pivot to contact patch, horizontal) ========== -->
+  <line x1="300" y1="395" x2="340" y2="395" stroke="orange" stroke-width="1.5"/>
+  <line x1="300" y1="380" x2="300" y2="400" stroke="orange" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="340" y1="380" x2="340" y2="400" stroke="orange" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="310" y="412" fill="orange" font-size="12" font-weight="bold">E</text>
+  <rect x="285" y="440" width="100" height="22" fill="white" stroke="orange" stroke-width="1"/>
+  <text x="290" y="456" fill="#ccc" font-size="11">________ "</text>
+  <text x="285" y="472" fill="orange" font-size="10">(ground contact to</text>
+  <text x="285" y="484" fill="orange" font-size="10"> pivot vertical)</text>
+
+  <!-- ========== DIMENSION F: Drive wheel diameter ========== -->
+  <line x1="710" y1="240" x2="710" y2="380" stroke="red" stroke-width="1"/>
+  <line x1="700" y1="240" x2="720" y2="240" stroke="red" stroke-width="1"/>
+  <line x1="700" y1="380" x2="720" y2="380" stroke="red" stroke-width="1"/>
+  <text x="720" y="315" fill="red" font-size="12" font-weight="bold">F</text>
+  <rect x="722" y="303" width="70" height="22" fill="white" stroke="red" stroke-width="1"/>
+  <text x="727" y="319" fill="#ccc" font-size="11">_____ "</text>
+
+  <!-- Legend -->
+  <rect x="50" y="70" width="300" height="130" fill="#f9f9f9" stroke="#ccc" stroke-width="1"/>
+  <text x="60" y="88" font-size="12" font-weight="bold">Measurements needed:</text>
+  <text x="60" y="106" fill="red" font-size="11">A = Caster wheel diameter</text>
+  <text x="60" y="122" fill="blue" font-size="11">B = Caster wheel width</text>
+  <text x="60" y="138" fill="green" font-size="11">C = Swivel offset (pivot to wheel center, horiz)</text>
+  <text x="60" y="154" fill="purple" font-size="11">D = Pivot height above ground</text>
+  <text x="60" y="170" fill="orange" font-size="11">E = Trail (contact patch to pivot vertical)</text>
+  <text x="60" y="186" fill="red" font-size="11">F = Drive wheel diameter (verify 13")</text>
+</svg>

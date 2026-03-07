@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" font-family="monospace" font-size="13">
+  <rect width="800" height="600" fill="white"/>
+  <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="bold">MOXL Measurement Sheet 4/4 — Motors, Engine, Photos</text>
+  <text x="400" y="50" text-anchor="middle" font-size="12" fill="#666">Print at 100%. Fill in text, check boxes, note model numbers.</text>
+
+  <!-- === DRIVE MOTORS === -->
+  <rect x="30" y="70" width="350" height="200" fill="#f9f9f9" stroke="black" stroke-width="1.5" rx="5"/>
+  <text x="205" y="92" text-anchor="middle" font-size="14" font-weight="bold">Drive Motors (wheelchair)</text>
+
+  <text x="45" y="118" font-size="12">Motor label / model #:</text>
+  <rect x="45" y="123" width="310" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <text x="45" y="163" font-size="12">Wires coming off each motor:</text>
+  <text x="55" y="183" font-size="12">[ ] 2 wires only (power)</text>
+  <text x="55" y="200" font-size="12">[ ] 2 power + 2 brake</text>
+  <text x="55" y="217" font-size="12">[ ] 2 power + 2 brake + extra connector</text>
+  <text x="55" y="234" font-size="12">[ ] Other: ___________________________</text>
+
+  <text x="45" y="258" font-size="11" fill="#666">If extra connector: count pins, note colors</text>
+
+  <!-- === ENGINE === -->
+  <rect x="420" y="70" width="350" height="200" fill="#f9f9f9" stroke="black" stroke-width="1.5" rx="5"/>
+  <text x="595" y="92" text-anchor="middle" font-size="14" font-weight="bold">Engine</text>
+
+  <text x="435" y="118" font-size="12">Engine model / spec plate:</text>
+  <rect x="435" y="123" width="310" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <text x="435" y="163" font-size="12">Rated RPM:</text>
+  <rect x="540" y="149" width="80" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <text x="435" y="193" font-size="12">Choke type:</text>
+  <text x="445" y="213" font-size="12">[ ] Manual cable/lever</text>
+  <text x="445" y="230" font-size="12">[ ] Auto choke (thermostat)</text>
+  <text x="445" y="247" font-size="12">[ ] Primer bulb (no choke plate)</text>
+
+  <text x="435" y="262" font-size="12">Electric start: [x] Yes</text>
+
+  <!-- === ALTERNATOR SPACE === -->
+  <rect x="30" y="290" width="350" height="150" fill="#f9f9f9" stroke="black" stroke-width="1.5" rx="5"/>
+  <text x="205" y="312" text-anchor="middle" font-size="14" font-weight="bold">Alternator Mounting Space</text>
+
+  <text x="45" y="338" font-size="12">Clearance above blade pulley:</text>
+  <rect x="270" y="324" width="80" height="22" fill="white" stroke="black" stroke-width="1"/>
+  <text x="275" y="340" fill="#ccc" font-size="11">______ "</text>
+
+  <text x="45" y="365" font-size="12">Horizontal space available:</text>
+  <rect x="270" y="351" width="80" height="22" fill="white" stroke="black" stroke-width="1"/>
+  <text x="275" y="367" fill="#ccc" font-size="11">______ "</text>
+
+  <text x="45" y="392" font-size="12">Blade pulley rotation (looking down):</text>
+  <text x="55" y="412" font-size="12">[ ] Clockwise    [ ] Counter-clockwise</text>
+  <text x="45" y="432" font-size="12">Number of blade spindles visible:</text>
+  <rect x="310" y="418" width="40" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- === DENSO ALTERNATOR === -->
+  <rect x="420" y="290" width="350" height="150" fill="#f9f9f9" stroke="black" stroke-width="1.5" rx="5"/>
+  <text x="595" y="312" text-anchor="middle" font-size="14" font-weight="bold">Denso Alternator</text>
+
+  <text x="435" y="338" font-size="12">Model / part #:</text>
+  <rect x="435" y="343" width="310" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <text x="435" y="385" font-size="12">Shaft diameter:</text>
+  <rect x="565" y="371" width="80" height="22" fill="white" stroke="black" stroke-width="1"/>
+  <text x="570" y="387" fill="#ccc" font-size="11">______ "</text>
+
+  <text x="435" y="412" font-size="12">Shaft end: [ ] Keyed [ ] Nut [ ] Splined</text>
+
+  <text x="435" y="432" font-size="12">Rated amps:</text>
+  <rect x="535" y="418" width="60" height="22" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- === PHOTO CHECKLIST === -->
+  <rect x="30" y="460" width="740" height="130" fill="#fff8e8" stroke="orange" stroke-width="1.5" rx="5"/>
+  <text x="400" y="482" text-anchor="middle" font-size="14" font-weight="bold" fill="orange">Photo Checklist</text>
+
+  <text x="45" y="505" font-size="12">[ ] Engine spec plate / model label</text>
+  <text x="45" y="522" font-size="12">[ ] Engine output pulley (with tape measure)</text>
+  <text x="45" y="539" font-size="12">[ ] Blade deck input pulley (with tape measure)</text>
+  <text x="45" y="556" font-size="12">[ ] Top of blade pulley shaft (clearance above deck)</text>
+  <text x="45" y="573" font-size="12">[ ] Belt routing overview (full path)</text>
+
+  <text x="420" y="505" font-size="12">[ ] Caster wheel side view (with tape measure)</text>
+  <text x="420" y="522" font-size="12">[ ] Wheelchair motor label + connectors</text>
+  <text x="420" y="539" font-size="12">[ ] Choke mechanism close-up</text>
+  <text x="420" y="556" font-size="12">[ ] Space above deck for alternator</text>
+  <text x="420" y="573" font-size="12">[ ] Denso alternator shaft end</text>
+</svg>
