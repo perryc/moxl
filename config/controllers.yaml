@@ -16,8 +16,8 @@ diff_drive_base_controller:
 
     left_wheel_names: ['left_wheel_joint']
     right_wheel_names: ['right_wheel_joint']
-    wheel_separation: 1.19  # meters (from drawing: 51 3/4" outer - 5" tires = 46.75" c-t-c)
-    wheel_radius: 0.165    # meters (from drawing: ~13" dia turf tires = 6.5" radius)
+    wheel_separation: 1.321  # meters (measured: 52" center-to-center, Mar 2026)
+    wheel_radius: 0.184    # meters (measured: 14 1/2" diameter, Mar 2026)
     wheels_per_side: 1
 
     use_stamped_vel: true

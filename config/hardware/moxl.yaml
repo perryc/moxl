@@ -1,18 +1,18 @@
 # Moxl — Robot Mower XL hardware configuration
 # Swisher 60" towable 3-blade deck with wheelchair motor differential drive
 #
-# Dimensions from engineering drawing (Dec 2024) — all converted from inches.
-# Values marked "TODO: verify" should be confirmed on the physical robot.
+# Dimensions from hangar measurements (Mar 2026) — all converted from inches.
+# See photos/Mower_Measurements.pdf for source data.
 
 chassis:
   # x, y, z offset in m of chassis from center of robot (base_link at drive axle center)
   # Casters at the FRONT, drive wheels at the REAR (under the deck).
-  # Deck is 1.137m long. Front edge at casters (~+0.895m), rear edge ~-0.24m behind drive axle.
+  # Deck is 1.137m long. Front edge at casters (~+1.105m), rear edge ~-0.24m behind drive axle.
   # URDF visual shifts +length/2 from this origin, so this is the rear edge.
   offset: [-0.24, 0.0, -0.05] # m (rear edge of deck behind drive axle)
 
-  # Swisher 60" deck: 1.52m wide, ~44 3/4" long from drawing, ~15 1/2" tall
-  width: 1.52   # m (60" Swisher deck)
+  # Swisher 60" deck: front width 42 3/4" measured, ~44 3/4" long from drawing, ~15 1/2" tall
+  width: 1.52   # m (60" Swisher deck — cutting width, frame narrower at 42 3/4")
   height: 0.394  # m (15 1/2" from drawing)
   length: 1.137  # m (44 3/4" from drawing)
 
@@ -21,9 +21,11 @@ chassis:
 mower:
   # Mower blades are under the Swisher deck, gas-engine-powered
   # Blade engagement is via GPIO relay (see blade_controller node)
-  offset: [0.33, 0.0, -0.15] # m (blades centered under deck, ~0.33m ahead of drive axle)
+  # 3 blades in triangle: rear pair 19.75" fwd at ±19" lateral, front center 26.75" fwd
+  # Rear left:  (0.502, -0.483)  Rear right: (0.502, +0.483)  Front: (0.679, 0.0)
+  offset: [0.561, 0.0, -0.15] # m (blade centroid, measured Mar 2026)
 
-  # Swisher 60" has 3 blades, effective cut radius covers the full deck width
+  # Swisher 60" deck, 3 blades. Rear pair 38" apart, front centered.
   cut_radius: 0.76 # m (half of 60" = 30" = 0.76m)
 
   thickness: 0.05 # m
@@ -32,39 +34,45 @@ mower:
 wheel:
   # Drive wheels (turf tires on wheelchair motors)
   # x=0 (at base_link), y = half of wheel separation
-  # From drawing: 51 3/4" outer-to-outer, ~5" tire width → ~46.75" center-to-center
-  offset: [0, 0.594, 0] # m (wheel separation ~1.19m, so y=0.594)
+  # Measured: 52" center-to-center (hangar visit Mar 2026)
+  offset: [0, 0.660, 0] # m (wheel separation 1.321m, so y=0.660)
 
   mass: 5.0 # kg (turf tire + wheelchair motor)
 
-  # Turf tire dimensions — ~13x5.00-6 size
-  radius: 0.165  # m (~13" diameter → 6.5" radius)
-  thickness: 0.127 # m (~5" wide)
+  # Turf tire dimensions — measured 14 1/2" diameter, 6 7/8" wide
+  radius: 0.184  # m (14.5" diameter → 7.25" radius)
+  thickness: 0.175 # m (6 7/8" wide)
 
   velocity:
     max: 1.5  # m/s (~3.4 mph)
     min: -0.5 # m/s (slow reverse)
 
-  # No gear ratio needed — BTS7960 drives motors directly via PWM
-  gear_ratio: 1.0
+  # Chain reduction: 19T motor sprocket → 32T wheel sprocket (22T idler/tensioner)
+  # Ratio = 32/19 = 1.684 (wheel turns slower than motor)
+  # TODO: verify 22T is an idler, not a jackshaft compound stage
+  gear_ratio: 1.684
 
 caster_wheel:
-  # Original Swisher caster wheels at the FRONT of the deck (direction of travel)
-  # From drawing: s3 = 35 1/4" = 0.895m AHEAD of drive axle, ~12" from centerline
-  offset: [0.895, 0.30] # m (x ahead of drive axle, y from center)
-  radius: 0.076 # m (~6" diameter casters)
+  # Swisher caster wheels at the FRONT of the deck (direction of travel)
+  # Measured: 11 3/4" dia, 4 1/2" wide, caster separation 40" (Mar 2026)
+  # Wheelbase: 43.5" caster pivot to drive axle center (Mar 2026)
+  # Axle-to-axle: 45.5" (2" difference = caster trail offset)
+  # Swivel offset 3 5/8", pivot height 11", trail 3 1/4"
+  offset: [1.105, 0.508] # m (43.5" ahead of drive axle, y = half of 40" caster separation)
+  radius: 0.149 # m (11 3/4" diameter → 5 7/8" radius)
   mass: 2.0 # kg
 
 gps:
   antenna:
     # FarmTRX RTK GPS antenna — mounted on a pole above the drive frame
-    # TODO: verify actual offset from drive axle center (base_link)
-    offset: [0.0, 0.0, 0.50] # m (centered, 0.5m above base_link)
+    # Measured: 5" forward of drive axle, centered laterally (Mar 2026)
+    # Height: 80cm AGL planned, base_link at 18.4cm AGL (wheel radius)
+    offset: [0.127, 0.0, 0.616] # m (5" fwd of axle, centered, 0.80m AGL)
 
 imu:
   chip:
     # FarmTRX magnetometer/IMU — built into the GPS puck
-    offset: [0.0, 0.0, 0.50] # m (co-located with GPS antenna)
+    offset: [0.127, 0.0, 0.616] # m (co-located with GPS antenna)
 
 park:
   # GPS coordinates for the parking/home position

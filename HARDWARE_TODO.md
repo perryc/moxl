@@ -18,36 +18,54 @@ See full spec: `docs/moxl-hat-spec.md`
 - [ ] Verify 24V supply to both BTS7960 boards
 - [ ] Verify PWM frequency (20 kHz) and duty cycle range works with motors
 - [ ] Compile BTS7960 hw_interface for Pi (currently using mock_components on desktop)
-- [ ] Investigate wheel encoders — motors are plain DC (no built-in halls)
+- [ ] Investigate wheel encoders — motors confirmed 2 power + 2 brake, no encoder connector
   - Options: magnetic encoders on wheel hubs (AS5048A), optical slot sensors
   - 2 GPIO inputs for pulse counting (future, or via CAN motor nodes)
+  - Chain drive: 19T motor → 22T (idler?) → 32T wheel, ratio 1.684:1
+- [x] Motor brakes — removed (2 brake wires per motor disconnected)
 
 ## Engine Control (via MOXL HAT)
-- [ ] Run relay (magneto kill) → HAT relay driver, GPIO 17
+- [ ] Run relay (magneto kill + fuel solenoid) → HAT relay driver, GPIO 17
+  - Fuel solenoid: 2-wire anti-afterfire solenoid under carb float bowl (energized = fuel flows)
+  - Wired through run relay so magneto kill + fuel cutoff happen together
 - [ ] Start relay (starter solenoid) → HAT relay driver, GPIO 27 — momentary pulse
-- [ ] Choke servo → HAT PCA9685 CH0 — mount servo to choke cable/lever
-- [ ] Throttle servo → HAT PCA9685 CH1 — mount servo to throttle cable/lever
+- [ ] Choke/throttle servo → HAT PCA9685 CH0 — combined single lever
+  - Positions: idle → half → full → choke (past full throttle detent)
+  - Mount servo to combined choke/throttle cable/lever on engine
 - [ ] RPM sensor → HAT opto-isolated input, GPIO 4 — hall sensor on flywheel or spark plug lead pickup
 - [ ] CHT thermocouple → HAT MAX31855, SPI CS1 — K-type ring terminal under head bolt
 - [ ] Implement engine_controller_node.py: cold/warm start sequence, CHT-driven choke logic
 
 ## Blade Engagement (via MOXL HAT)
-- [ ] Blade relay → HAT relay driver, GPIO 25
-- [ ] Belt engagement actuator → HAT PCA9685 CH2 — **hardware not selected**
-  - Options: linear actuator, solenoid, servo on engagement lever
-  - Needs enough force to engage/disengage blade drive belt under tension
+- [ ] Blade engage relay → HAT relay driver, GPIO 25
+  - Actuates belt tensioner lever (rod/black knob) that tensions engine→center spindle belt
+  - Two-belt system: Belt #1 engine→center spindle (engagement tensioner), Belt #2 center→3 blades (permanent)
+  - ~10 ft-lbs force, ~8" lever travel, spring return (disengage = safe default)
+- [ ] Belt engagement actuator — 12V linear actuator, ~200mm stroke, ~50 lbs force
+  - Pulls the engagement lever; spring return handles disengage
+  - Driven via blade relay (GPIO 25)
 - [ ] GPS work_state feedback via CAN (GPXDR MACHINE_WORK) confirms engagement
 
 ## Power System
 - [ ] Install 2x 12V batteries in series (24V drive, 12V center tap for starter)
-- [ ] MOXL HAT 24V→5V buck powers Pi (no separate Pi power supply needed)
+- [ ] MOXL HAT 12V→5V buck powers Pi (no separate Pi power supply needed)
+- [ ] Pi 5 RTC battery — CR2032 coin cell on Pi 5 J5 header (JST-SH 2-pin)
+  - Enables scheduled wake from shutdown (built-in RTC on RP1 chip)
+  - Mission node sets RTC alarm before shutdown, Pi wakes at next mow time
+  - Pi draws <1mA in halt — batteries last weeks between mows
 - [ ] Direct-drive alternator coupler on blade pulley shaft
   - [ ] Measure blade pulley shaft diameter, keyway, protrusion above deck
   - [ ] Design/machine coupler to mount Denso alternator
   - [ ] Convert Denso alternator to 24V output
   - [ ] Mount alternator bracket above deck
 - [ ] Fuel level sender — resistive float in plastic tank → HAT ADS1115 A2
-- [ ] Battery voltage monitoring → HAT ADS1115 A0 (24V via divider)
+  - Tank: B&S plastic, L-shaped, ~12" wide x ~7" tall, ~3.5 qt (3.3L), translucent
+  - Filler cap on lower extension — sender through replacement cap or drilled/tapped fitting
+  - Resistive float sender (10-180Ω or 0-90Ω), reference resistor on HAT PCB
+- [ ] Battery voltage monitoring (2x lead-acid in series)
+  - ADS1115 A0: bottom battery (GND to center tap) — 100K/27K divider
+  - ADS1115 A3: full pack (GND to +24V) — 100K/10K divider
+  - Top battery = pack - bottom; alert if imbalance > 0.5V
 - [ ] Alternator current monitoring → HAT ADS1115 A1 (hall sensor or shunt)
 
 ## GPS (FarmTRX RTK)
@@ -61,26 +79,32 @@ See full spec: `docs/moxl-hat-spec.md`
 - [ ] Confirm magnetic declination 7.2° East for CDS2 site
 
 ## Safety
-- [ ] LiDAR — **hardware not selected**, obstacle detection stubbed in `safety_monitor_node.py`
-  - Options: RPLidar A1 (2D, cheap), RPLidar A2, Livox Mid-360
-  - Need: forward arc obstacle detection, ~10m range minimum
+- [ ] LiDAR — **SLAMTEC RPLIDAR C1** (ordered, AliExpress)
+  - 360° dTOF, 12m range (white), 6m (black), 5V/230mA via USB-A
+  - Pi 5 USB-A → rplidar_ros2 driver → `/scan` → safety_monitor_node.py
+  - Mount location TBD — needs clear forward arc
 - [ ] Physical e-stop button — GPIO input (pin TBD), hardware interrupt to kill motors + blades
-- [ ] Wireless e-stop / RC kill switch (nice to have)
+- [ ] RC manual override — **FrSky Taranis + X8R receiver**
+  - X8R SBUS out → HAT J12 (PH 3p) → 74HC14 inverter → Pi UART0 RX (GPIO15)
+  - UART0 shared with RS-232 (J11) via 0R DNP selector resistors
+  - ROS2 SBUS parser node → `/rc/cmd_vel` → twist_mux (highest priority)
+  - Dead-man switch on spare channel — RC only active when held
+  - Also serves as wireless e-stop (release stick = stop)
 - [ ] CHT overheat protection: >200°C reduce throttle, >250°C emergency shutdown
 
 ## Physical Measurements to Verify
 See printable measurement sheets: `docs/measurement-sheets/`
-- [ ] Wheel separation — configured 1.19m (from engineering drawing, 51 3/4")
-- [ ] Wheel radius — configured 0.165m (~13" diameter)
-- [ ] Chassis dimensions — configured 1.52m x 1.137m
-- [ ] Caster geometry — wheel diameter, trail, swivel offset, pivot height
-- [ ] GPS antenna position relative to drive axle center
-- [ ] Engine spec plate / rated RPM
-- [ ] Belt routing + all pulley diameters
-- [ ] Blade pulley shaft — diameter, end type, protrusion for alternator coupler
-- [ ] Choke mechanism type (manual cable / auto / primer)
-- [ ] Motor wiring (confirm no encoder connector)
-- [ ] Fuel tank — size, sender mounting location
+- [x] Wheel separation — 52" center-to-center (1.321m), updated in config
+- [x] Wheel radius — 14.5" loaded diameter (0.184m radius), updated in config
+- [x] Chassis dimensions — 1.52m x 1.137m (from Swisher drawing, sufficient for URDF visual)
+- [x] Caster geometry — 11.75" loaded dia, 4.5" wide, 3.625" swivel offset, 11" pivot, 3.25" trail, 40" separation
+- [x] GPS antenna position — 5" forward of drive axle, centered laterally, height TBD
+- [x] Engine spec plate — B&S I/C 500cc 14.5 HP, Family 9BSXS.5002VP, ~3600 RPM no-load
+- [x] Belt routing — 2-belt system, all blade pulleys 5.5" (1:1), engage pulley 3.7"
+- [x] Blade pulley shaft — threaded, 1/8" protrusion, hex nut
+- [x] Choke mechanism — combined choke/throttle single lever (idle→half→full→choke)
+- [x] Motor wiring — 2 power + 2 brake wires, no encoder connector, brakes removed
+- [x] Fuel tank — B&S plastic, L-shaped, ~12" x 7", ~3.5 qt, translucent, filler cap on extension
 
 ## GPIO Pin Map (via MOXL HAT — all opto-isolated)
 
