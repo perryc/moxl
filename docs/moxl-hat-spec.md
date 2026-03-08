@@ -95,8 +95,8 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 | ADS1115 | 16-bit 4-channel ADC | I2C 0x48 | Battery V, alternator A, fuel level, pack V |
 | TLP293-4 x2 | Quad opto-isolators (SO16) | GPIO pass-through | 20kHz PWM capable, BTS7960 motor signals |
 | ULN2003A | Darlington relay driver | GPIO | 4 relay channels (run+fuel sol, start, blade, belt) |
-| LMR36520 or similar | 12V→6V/2A buck converter | — | Main power rail from 12V center tap |
-| LDO 5V (≤500mV dropout) | 6V→5V linear regulator | — | Pi + logic power, SOT-223/DPAK (1.5W dissipation) |
+| LMR33630 or similar | 12V→6V/3A buck converter | — | Main power rail from 12V center tap |
+| LDO 5V (≤0.7V dropout, 2A) | 6V→5V linear regulator | — | Pi + HAT logic power, SOT-223/DPAK (2W dissipation) |
 | MAX3221 | RS-232 line driver/receiver | UART0 | 3V logic to RS-232 levels (via DNP selector resistors) |
 | CAT24C256 | HAT ID EEPROM (DNP) | I2C0 | Pi HAT auto-configuration, optional |
 | 74HC14 | Hex Schmitt trigger inverter | — | Gate 1: RPM tach cleanup, Gate 2: SBUS uninvert |
@@ -208,11 +208,11 @@ DNP selector resistors. Populate R1+R3 for RS-232, R4 for SBUS. Never both.
  │
  F1 (2A polyfuse)
  │
- └─ 6V Buck (LMR36520 or similar, 2A)
-     ├─ PCA9685 V+ (servo power, 6V direct)
+ └─ 6V/3A Buck (LMR33630 or similar)
+     ├─ PCA9685 V+ (servo power, 6V direct, 0.5A)
      ├─ J6 servo connector power pins (6V)
-     └─ 5V LDO (≤500mV dropout, 2A, SOT-223/DPAK)
-          ├─ Pi 5V (GPIO header pins 2/4)
+     └─ 5V/2A LDO (≤0.7V dropout, SOT-223/DPAK)
+          ├─ Pi 5V (GPIO header pins 2/4, 1.5A)
           ├─ HAT logic ICs (3.3V from Pi)
           └─ Field-side opto power (5V)
 ```
@@ -222,12 +222,13 @@ DNP selector resistors. Populate R1+R3 for RS-232, R4 for SBUS. Never both.
 | Load | Voltage | Current (typ) |
 |------|---------|--------------|
 | Raspberry Pi 5 | 5V (from LDO) | 1.5A |
-| PCA9685 + servos | 6V (from buck) | 0.5A |
+| PCA9685 + servo | 6V (from buck) | 0.5A |
 | HAT logic ICs | 3.3V (from Pi) | 0.1A |
 | Opto field side | 5V (from LDO) | 0.1A |
-| **Total from 12V bus** | | **~1.2A @ 12V (14W)** |
+| **Total on 6V rail** | | **~2.5A peak** |
+| **Total from 12V bus** | | **~1.5A @ 12V (18W)** |
 
-LDO dissipation: (6V - 5V) × 1.6A ≈ 1.6W — SOT-223 or DPAK on ground plane.
+LDO dissipation: (6V - 5V) × 2A = 2W max — SOT-223 or DPAK on ground plane.
 
 ## Engine Details
 
