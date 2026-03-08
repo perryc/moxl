@@ -134,9 +134,10 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 ### Relay Drivers (via ULN2003A, opto-isolated)
 | Pi GPIO | Function |
 |---------|----------|
-| GPIO 17 | Engine run relay (magneto kill + fuel solenoid) |
-| GPIO 25 | Blade engage relay (belt tensioner linear actuator) |
-| GPIO 27 | Engine start relay (starter solenoid, momentary) |
+| GPIO 17 | Engine run relay (magneto kill + fuel solenoid) — ULN2003A IN1 |
+| GPIO 25 | Blade engage relay (belt tensioner linear actuator) — ULN2003A IN3 |
+| GPIO 27 | Engine start relay (starter solenoid, momentary) — ULN2003A IN2 |
+| GPIO 5 | Aux relay — ULN2003A IN4 |
 
 ### Inputs
 | Pi GPIO | Function |
@@ -146,8 +147,8 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 ### Free GPIOs
 | Pi GPIO | Status |
 |---------|--------|
-| GPIO 5 | Available |
 | GPIO 6 | Available |
+| GPIO 18 | Available (hardware PWM0 capable) |
 | GPIO 19 | Available |
 
 ## Analog Input Wiring
@@ -189,7 +190,7 @@ DNP selector resistors. Populate R1+R3 for RS-232, R4 for SBUS. Never both.
 
 | Connector | Pins | Family | Signals |
 |-----------|------|--------|---------|
-| J1 | 2-pin | JST-VH | +12V, GND |
+| J1 | 2-pin | JST-VH | GND, +12V_RAW |
 | J2 | 4-pin | XH | CANH, CANL, CAN_12V, GND |
 | J3 | 6-pin | XH | L_RPWM, L_LPWM, L_REN, L_LEN, FIELD_5V, FIELD_GND |
 | J4 | 6-pin | XH | R_RPWM, R_LPWM, R_REN, R_LEN, FIELD_5V, FIELD_GND |
