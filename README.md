@@ -23,7 +23,7 @@ The fork keeps the proven ROS2 infrastructure — ros2_control, Nav2 path follow
 | OpenMowerNext | Mo-XL | Why |
 |---|---|---|
 | VESC motor controllers | BTS7960 43A H-bridges | Different motors, 24V system |
-| u-blox F9P GPS | FarmTRX RTK (NMEA serial) | We make this stuff! Let's use it |
+| u-blox F9P GPS | FarmTRX RTK (CAN GPS) | We make this stuff! Let's use it |
 | NTRIP client | Removed | FarmTRX handles its own RTK corrections |
 | micro-ROS + custom mainboard | Mo-XL Pi HAT (custom PCB) | Single board, opto-isolated, JLCPCB assembled |
 | IMU (on mainboard) | GPS magnetometer + gyro | FarmTRX sends heading (HDT/HCHDG) and rate of turn (TIROT) |
