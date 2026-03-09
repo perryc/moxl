@@ -59,11 +59,16 @@ See full spec: `docs/moxl-hat-spec.md`
   - Enables scheduled wake from shutdown (built-in RTC on RP1 chip)
   - Mission node sets RTC alarm before shutdown, Pi wakes at next mow time
   - Pi draws <1mA in halt — batteries last weeks between mows
-- [ ] Direct-drive alternator coupler on blade pulley shaft
-  - [ ] Measure blade pulley shaft diameter, keyway, protrusion above deck
-  - [ ] Design/machine coupler to mount Denso alternator
-  - [ ] Convert Denso alternator to 24V output
-  - [ ] Mount alternator bracket above deck
+- [ ] Belt-driven alternator (replaces direct-drive coupler plan)
+  - Belt 1 extended: Engine → Alternator → Center spindle (single belt, 3 pulleys)
+  - Repositioned tensioner on long run between alternator and center spindle
+  - Alternator mounted above deck with slotted bracket for alignment
+  - Same engagement actuator (GPIO 25) tensions belt to engage blades + charging
+  - Belt 2 unchanged: Center spindle → 3 blade spindles (permanent)
+  - [ ] Select/source alternator (Denso or similar, convert to 24V output)
+  - [ ] Fabricate alternator mounting bracket (pivot or slotted)
+  - [ ] Select belt length (longer than original Belt 1)
+  - [ ] Reposition or rework tensioner pulley for new belt path
 - [ ] Fuel level sender — resistive float in plastic tank → HAT ADS1115 A2
   - Tank: B&S plastic, L-shaped, ~12" wide x ~7" tall, ~3.5 qt (3.3L), translucent
   - Filler cap on lower extension — sender through replacement cap or drilled/tapped fitting
