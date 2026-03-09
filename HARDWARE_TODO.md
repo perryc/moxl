@@ -13,15 +13,21 @@ See full spec: `docs/moxl-hat-spec.md`
 - 24V→5V buck converter powers Pi from battery bus
 
 ## Drive System (BTS7960)
-- [ ] Wire left motor: RPWM→GPIO12, LPWM→GPIO16, R_EN→GPIO20, L_EN→GPIO21
-- [ ] Wire right motor: RPWM→GPIO13, LPWM→GPIO26, R_EN→GPIO23, L_EN→GPIO24
+- [ ] Wire left motor: HAT J3 (2×4 IDC) → BTS7960 header via ribbon cable
+  - RPWM→GPIO12, LPWM→GPIO16, R_EN→GPIO20, L_EN→GPIO21
+  - R_IS/L_IS current sense: NC initially (route to ADC later if needed)
+- [ ] Wire right motor: HAT J4 (2×4 IDC) → BTS7960 header via ribbon cable
+  - RPWM→GPIO13, LPWM→GPIO26, R_EN→GPIO23, L_EN→GPIO24
 - [ ] Verify 24V supply to both BTS7960 boards
 - [ ] Verify PWM frequency (20 kHz) and duty cycle range works with motors
 - [ ] Compile BTS7960 hw_interface for Pi (currently using mock_components on desktop)
-- [ ] Investigate wheel encoders — motors confirmed 2 power + 2 brake, no encoder connector
-  - Options: magnetic encoders on wheel hubs (AS5048A), optical slot sensors
-  - 2 GPIO inputs for pulse counting (future, or via CAN motor nodes)
+- [ ] Wheel encoder pulse counters → HAT J13 (XH 4p), via 74HC14 gates 3-4
+  - Left wheel → 74HC14 gate 3 → GPIO 6 (interrupt)
+  - Right wheel → 74HC14 gate 4 → GPIO 19 (interrupt)
+  - Sensor options: optical slot on 32T sprocket (32 pulses/rev, ~28 pulses/m)
+    or hall sensor + magnets on wheel hub
   - Chain drive: 19T motor → 22T (idler?) → 32T wheel, ratio 1.684:1
+  - Will allow diff_drive_controller to switch from open_loop to closed-loop
 - [x] Motor brakes — removed (2 brake wires per motor disconnected)
 
 ## Engine Control (via MOXL HAT)

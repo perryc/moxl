@@ -66,19 +66,26 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 │                                                     │
 │  ┌───────────────────────────┐                      │
 │  │ RPM tach input            │  GPIO 4 (interrupt)  │
-│  │ Schmitt trigger + opto    │                      │
+│  │ 74HC14 gate 1             │                      │
 │  └───────────────────────────┘                      │
+│                                                     │
+│  ┌───────────────────────────┐                      │
+│  │ Wheel encoder inputs      │  GPIO 6, 19 (int)   │
+│  │ 74HC14 gates 3, 4         │                      │
+│  └──┬────────────────────────┘                      │
+│     ├── Left wheel pulse  (gate 3, pin 5→6)        │
+│     └── Right wheel pulse (gate 4, pin 9→8)        │
 │                                                     │
 │  ┌───────────────────────────┐                      │
 │  │ Connectors (JST)          │                      │
 │  ├── J1: 12V power (VH 2p)  │                      │
 │  ├── J2: CAN bus (XH 4p)    │                      │
-│  ├── J3: Left motor (XH 6p) │                      │
-│  ├── J4: Right motor (XH 6p)│                      │
+│  ├── J3: Left motor (2×4 IDC)│                      │
+│  ├── J4: Right motor (2×4 IDC)                      │
 │  ├── J5: Relays (XH 5p)     │                      │
 │  ├── J6: Servos (XH 8p)     │                      │
 │  ├── J7: Analog (PH 5p)     │                      │
-│  ├── J8: RPM tach (XH 3p)   │                      │
+│  ├── J8: Tach + encoders (XH 5p)│                   │
 │  ├── J9: Thermocouple (XH 2p)│                     │
 │  ├── J11: RS-232 (PH 3p)    │                     │
 │  └── J12: SBUS RC (PH 3p)   │                     │
@@ -98,8 +105,8 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 | LMR33630 or similar | 12V→6V/3A buck converter | — | Main power rail from 12V center tap |
 | LDO 5V (≤0.7V dropout, 2A) | 6V→5V linear regulator | — | Pi + HAT logic power, SOT-223/DPAK (2W dissipation) |
 | MAX3221 | RS-232 line driver/receiver | UART0 | 3V logic to RS-232 levels (via DNP selector resistors) |
-| CAT24C256 | HAT ID EEPROM (DNP) | I2C0 | Pi HAT auto-configuration, optional |
-| 74HC14 | Hex Schmitt trigger inverter | — | Gate 1: RPM tach cleanup, Gate 2: SBUS uninvert |
+| CAT24C256 | HAT ID EEPROM | I2C0 | Pi HAT auto-configuration, write-protect via JP1 |
+| 74HC14 | Hex Schmitt trigger inverter | — | Gate 1: RPM tach, Gate 2: SBUS, Gates 3-4: wheel encoders |
 
 ## Pin Mapping — Raspberry Pi 5
 
@@ -139,17 +146,17 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 | GPIO 27 | Engine start relay (starter solenoid, momentary) — ULN2003A IN2 |
 | GPIO 5 | Aux relay — ULN2003A IN4 |
 
-### Inputs
-| Pi GPIO | Function |
-|---------|----------|
-| GPIO 4 | RPM tach (via Schmitt trigger + opto) |
+### Inputs (via 74HC14 Schmitt trigger)
+| Pi GPIO | Function | 74HC14 Gate |
+|---------|----------|-------------|
+| GPIO 4 | RPM tach (engine) | Gate 1 (pin 1→2) |
+| GPIO 6 | Left wheel encoder pulse | Gate 3 (pin 5→6) |
+| GPIO 19 | Right wheel encoder pulse | Gate 4 (pin 9→8) |
 
 ### Free GPIOs
 | Pi GPIO | Status |
 |---------|--------|
-| GPIO 6 | Available |
 | GPIO 18 | Available (hardware PWM0 capable) |
-| GPIO 19 | Available |
 
 ## Analog Input Wiring
 
@@ -179,11 +186,12 @@ direct GPIO wiring with isolated, protected I/O. All commodity parts.
 
 ## Connector Pinouts
 
-All connectors JST-XH except J1 (JST-VH for power), J7/J11/J12 (JST-PH).
-Every XH connector has a unique pin count so nothing fits where it shouldn't.
-J3/J4 are the only match (both 6-pin) — identical mirror circuits, swap just
-reverses L/R steering. PH connectors can't plug into any XH slot, and J7 (5-pin PH)
-can't plug into J11/J12 (3-pin PH) either.
+All connectors JST-XH except J1 (JST-VH for power), J3/J4 (2×4 shrouded IDC
+2.54mm — matches BTS7960 module header directly, use short ribbon cable),
+J7/J8/J11/J12 (JST-PH). Every XH connector has a unique pin count so nothing
+fits where it shouldn't. PH connectors can't plug into any XH slot, and J7 (5-pin PH)
+can't plug into J11/J12 (3-pin PH) either. J3/J4 are keyed IDC — swap just
+reverses L/R steering.
 
 UART0 (GPIO14/15) is shared between RS-232 (J11) and SBUS (J12) via 0603 0R
 DNP selector resistors. Populate R1+R3 for RS-232, R4 for SBUS. Never both.
@@ -192,12 +200,12 @@ DNP selector resistors. Populate R1+R3 for RS-232, R4 for SBUS. Never both.
 |-----------|------|--------|---------|
 | J1 | 2-pin | JST-VH | GND, +12V_RAW |
 | J2 | 4-pin | XH | CANH, CANL, CAN_12V, GND |
-| J3 | 6-pin | XH | L_RPWM, L_LPWM, L_REN, L_LEN, FIELD_5V, FIELD_GND |
-| J4 | 6-pin | XH | R_RPWM, R_LPWM, R_REN, R_LEN, FIELD_5V, FIELD_GND |
+| J3 | 2×4 | IDC 2.54mm | L_RPWM, L_LPWM, L_REN, L_LEN, L_RIS, L_LIS, VCC, GND |
+| J4 | 2×4 | IDC 2.54mm | R_RPWM, R_LPWM, R_REN, R_LEN, R_RIS, R_LIS, VCC, GND |
 | J5 | 5-pin | XH | RELAY_RUN, RELAY_START, RELAY_BLADE, RELAY_BELT, GND |
 | J6 | 8-pin | XH | SERVO_CHKTHRTL, SERVO1, SERVO2, SERVO3, 6V, 6V, GND, GND |
 | J7 | 5-pin | JST-PH | BATT_V, ALT_I, FUEL, PACK_V, GND |
-| J8 | 3-pin | XH | RPM_SIG, 5V, GND |
+| J8 | 5-pin | JST-PH | RPM_SIG, ENC_L, ENC_R, 5V, GND |
 | J9 | 2-pin | XH | TC+, TC- |
 | J11 | 3-pin | JST-PH | RS232_TX, RS232_RX, GND (via R1+R3) |
 | J12 | 3-pin | JST-PH | SBUS_IN, 5V, GND (via R4, 74HC14 inverter) |

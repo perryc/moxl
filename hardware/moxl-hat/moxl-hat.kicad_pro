@@ -59,7 +59,44 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        [
+          "silk_over_copper|124799819|61636666|62b2b2ad-3198-4b89-8f3d-752cdab15552|00000000-0000-0000-0000-000000000000",
+          ""
+        ],
+        [
+          "silk_over_copper|146990000|61472168|f9fa2301-22bf-4df7-861c-7175eed0fe39|00000000-0000-0000-0000-000000000000",
+          ""
+        ],
+        [
+          "silk_overlap|136840000|95450000|1e2a1d7f-71e9-4ebe-a9cb-742230e54947|6cd41b26-2ed7-488c-8efe-9e2af79ce3b4",
+          ""
+        ],
+        [
+          "silk_overlap|136840000|95450000|1e2a1d7f-71e9-4ebe-a9cb-742230e54947|b51fdd3c-4712-4219-94ba-72e3e3a6f285",
+          ""
+        ],
+        [
+          "silk_overlap|136840000|96050000|1e2a1d7f-71e9-4ebe-a9cb-742230e54947|492d11d4-abc0-465e-8d23-64dbb9689855",
+          ""
+        ],
+        [
+          "starved_thermal|110400000|86500000|afdadbdd-698b-40e7-91ef-0c1ed41ae066|169ee7f0-03da-4ad6-b3f7-47d2dfe3ea07|F.Cu",
+          ""
+        ],
+        [
+          "starved_thermal|116700000|81650000|afdadbdd-698b-40e7-91ef-0c1ed41ae066|351e8030-e290-4430-ae74-a105b7f74531|F.Cu",
+          ""
+        ],
+        [
+          "starved_thermal|122500000|76700000|afdadbdd-698b-40e7-91ef-0c1ed41ae066|bee9aa4f-6cd3-4af0-8393-051bb3293540|F.Cu",
+          ""
+        ],
+        [
+          "starved_thermal|129458681|49538681|06fce151-4b78-466d-9baf-8bc7422c093a|dd7f24e0-4b76-4b9b-96ca-cd8404f2c7ca|In2.Cu",
+          ""
+        ]
+      ],
       "meta": {
         "version": 2
       },
@@ -144,7 +181,7 @@
         "min_track_width": 0.2,
         "min_via_annular_width": 0.05,
         "min_via_diameter": 0.4,
-        "solder_mask_to_copper_clearance": 0.0,
+        "solder_mask_to_copper_clearance": 0.005,
         "use_height_for_length_calcs": true
       },
       "teardrop_options": [
@@ -192,7 +229,12 @@
         }
       ],
       "track_widths": [
-        0.0
+        0.0,
+        0.0,
+        0.2,
+        0.25,
+        0.3,
+        0.5
       ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
@@ -503,7 +545,7 @@
         "microvia_drill": 0.1,
         "name": "50ohm",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 0,
+        "priority": 1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.9073,
         "via_diameter": 0.6,
@@ -520,7 +562,7 @@
         "microvia_drill": 0.1,
         "name": "60Z_Diff",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 1,
+        "priority": 2,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.3338,
         "via_diameter": 0.6,
@@ -537,7 +579,7 @@
         "microvia_drill": 0.1,
         "name": "90Z_Diff",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 2,
+        "priority": 3,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.1554,
         "via_diameter": 0.6,
@@ -554,12 +596,19 @@
         "microvia_drill": 0.1,
         "name": "PWR",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 3,
+        "priority": 4,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.5,
         "via_diameter": 0.6,
         "via_drill": 0.3,
         "wire_width": 6
+      },
+      {
+        "name": "Relay",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.3
       },
       {
         "bus_width": 12,
@@ -571,7 +620,7 @@
         "microvia_drill": 0.1,
         "name": "USB_PWR",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 4,
+        "priority": 5,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.5,
         "via_diameter": 0.6,
@@ -601,12 +650,8 @@
         "pattern": "/IO/CAN?_N"
       },
       {
-        "netclass": "50ohm",
-        "pattern": "/UM980/GPS_50Z*"
-      },
-      {
-        "netclass": "90Z_Diff",
-        "pattern": "/*USB_D?"
+        "netclass": "Relay",
+        "pattern": "/RELAY*"
       },
       {
         "netclass": "Default",
@@ -661,7 +706,7 @@
           "group_by": false,
           "label": "Datasheet",
           "name": "Datasheet",
-          "show": true
+          "show": false
         },
         {
           "group_by": false,
@@ -1009,6 +1054,18 @@
           "group_by": false,
           "label": "Low Level Range (Vil)",
           "name": "Low Level Range (Vil)",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "Voltage Rated",
+          "name": "Voltage Rated",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "Capacitance",
+          "name": "Capacitance",
           "show": false
         }
       ],
