@@ -342,14 +342,17 @@ Runs Gazebo simulation with full Nav2 navigation, toolpath planning, and mission
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-cd ~/ros2_ws && colcon build --symlink-install
-source install/setup.bash
+cd ~/moxl && colcon build && source install/setup.bash
 ros2 launch moxl sim.launch.py
 
 # Send a mowing mission (in a second terminal)
 ros2 action send_goal /moxl/mission moxl/action/MowMission \
   '{airstrip_id: CDS2, runway_id: "11/29"}' --feedback
 ```
+
+> **Important:** Gazebo loads the world file from `install/`, not from `worlds/` in the source tree.
+> After any change to `worlds/empty.sdf` (or a `git pull` that updates it), you must
+> `colcon build` again so the updated file is copied into the install directory.
 
 ### Launch (Native ROS2)
 
